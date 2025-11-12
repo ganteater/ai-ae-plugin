@@ -3,10 +3,7 @@ package com.ganteater.ae.desktop.editor;
 import java.awt.Dimension;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.List;
 
@@ -91,15 +88,15 @@ public class AIHelperDialog extends HelperDialog {
 						List<ResponseOutputItem> output = response.output();
 						ResponseOutputMessage message = output.get(0).message().get();
 						String responseText = message.content().get(0).outputText().get().text();
-						
+
 						System.out.println(responseText);
-						
+
 						int cursor = StringUtils.indexOf(responseText, "[CURSOR]");
-						if(cursor > 0) {
+						if (cursor > 0) {
 							responseText = responseText.replace("[CURSOR]", "");
 							caretPosition = cursor;
 						}
-						
+
 						getCodeHelper().hide();
 
 						String code = StringUtils.substringBetween(responseText, "```xml\n", "```");
@@ -115,6 +112,7 @@ public class AIHelperDialog extends HelperDialog {
 								textEditor.setCaretPosition(code.length());
 							}
 						}
+						setVisible(false);
 
 					} catch (Exception e1) {
 						// TODO Auto-generated catch block
@@ -129,8 +127,8 @@ public class AIHelperDialog extends HelperDialog {
 	private static final long serialVersionUID = 1L;
 
 	@Override
-	public void helpWith(String startText, boolean isCommand) {
-		showDialog();
+	public void showDialog() {
+		super.showDialog();
 		SwingUtilities.invokeLater(() -> {
 			editor.requestFocusInWindow();
 		});
