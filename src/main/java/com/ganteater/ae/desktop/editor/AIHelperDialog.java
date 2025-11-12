@@ -13,6 +13,7 @@ import java.util.List;
 import javax.swing.BorderFactory;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
+import javax.swing.SwingUtilities;
 
 import org.apache.commons.lang.StringUtils;
 import org.jsoup.Jsoup;
@@ -56,21 +57,49 @@ public class AIHelperDialog extends HelperDialog {
 				case KeyEvent.VK_ENTER:
 					String text = editor.getText();
 
-					String webpageUrl = "https://ganteater.com/recipes.html";
+					String webpageUrl = "https://ganteater.com/commands.md";
 					try {
 						String relevantText = extractTextFromHtml(webpageUrl);
 
+						TextEditor textEditor = getCodeHelper().getEditor();
+						StringBuilder textWithCursor = new StringBuilder(textEditor.getText());
+						int caretPosition = textEditor.getCaretPosition();
+						textWithCursor.insert(caretPosition, "[CURSOR]");
+						int selectionStart = textEditor.getSelectionStart();
+						if (selectionStart < caretPosition) {
+							textWithCursor.insert(selectionStart - 1, "[SELECTION_START]");
+						} else {
+							textWithCursor.insert(selectionStart + "[CURSOR]".length() - 1, "[SELECTION_START]");
+						}
+
+						int selectionEnd = textEditor.getSelectionEnd();
+						if (selectionEnd < caretPosition) {
+							textWithCursor.insert(selectionEnd + 1, "[SELECTION_END]");
+						} else {
+							textWithCursor.insert(selectionEnd + "[CURSOR]".length() + "[SELECTION_END] + 1".length(),
+									"[SELECTION_END]");
+						}
+
 						ResponseCreateParams params = ResponseCreateParams.builder()
 								.input("Here is information from a webpage: " + relevantText
-										+ "\n\nCurrect recipe code: \"" + getCodeHelper().getEditor().getText()
-										+ "\n\nBased on this, answer my question: \"" + text
-										+ "\"Output: response should have only recipe code without any additional text.")
+										+ "\n\nCurrect recipe code, if a part of code selected then [SELECTION_START] and [SELECTION_END] to use mark that and place the [CURSOR] position below:\n"
+										+ textWithCursor.toString() + "\n\nBased on this, answer my question: \"" + text
+										+ "\"Output format hint: response should have only recipe code without any additional text.")
 								.model(ChatModel.GPT_4_1).build();
 
 						Response response = client.responses().create(params);
 						List<ResponseOutputItem> output = response.output();
 						ResponseOutputMessage message = output.get(0).message().get();
 						String responseText = message.content().get(0).outputText().get().text();
+						
+						System.out.println(responseText);
+						
+						int cursor = StringUtils.indexOf(responseText, "[CURSOR]");
+						if(cursor > 0) {
+							responseText = responseText.replace("[CURSOR]", "");
+							caretPosition = cursor;
+						}
+						
 						getCodeHelper().hide();
 
 						String code = StringUtils.substringBetween(responseText, "```xml\n", "```");
@@ -80,6 +109,11 @@ public class AIHelperDialog extends HelperDialog {
 						getCodeHelper().getEditor().setText(code);
 						if (StringUtils.isNotBlank(code)) {
 							getCodeHelper().getEditor().getRecipePanel().compileTask();
+							try {
+								textEditor.setCaretPosition(caretPosition);
+							} catch (IllegalArgumentException e1) {
+								textEditor.setCaretPosition(code.length());
+							}
 						}
 
 					} catch (Exception e1) {
@@ -97,28 +131,15 @@ public class AIHelperDialog extends HelperDialog {
 	@Override
 	public void helpWith(String startText, boolean isCommand) {
 		showDialog();
-	}
-
-	public static String fetchHtmlContent(String urlString) throws Exception {
-		URL url = new URL(urlString);
-		HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-
-		try (BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {
-			StringBuilder content = new StringBuilder();
-			String line;
-			while ((line = reader.readLine()) != null) {
-				content.append(line).append("\n");
-			}
-			return content.toString();
-		} finally {
-			connection.disconnect();
-		}
+		SwingUtilities.invokeLater(() -> {
+			editor.requestFocusInWindow();
+		});
 	}
 
 	public static String extractTextFromHtml(String urlString) {
 		Document doc;
 		try {
-			doc = Jsoup.parse(new URL(urlString), 4000);
+			doc = Jsoup.parse(new URL(urlString), 5000);
 			return doc.body().text();
 		} catch (IOException e) {
 			throw new IllegalArgumentException(e);

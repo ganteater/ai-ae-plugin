@@ -1,0 +1,5 @@
+<Recipe name="AI Test">
+	<Var name="Leng" type="number" init="console" /> 
+	<Calculate name="Result" expressions="$var{Leng} + 4" /> 
+	<Out name="Result" /> 
+</Recipe> 
