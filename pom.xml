@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+	<parent>
+		<groupId>com.ganteater.plugins</groupId>
+		<artifactId>ae-plugins</artifactId>
+		<version>1.2.4-SNAPSHOT</version>
+		<relativePath></relativePath>
+	</parent>
+
+	<artifactId>ai-ae-plugin</artifactId>
+	<name>AI Anteater Plugin</name>
+	<description>Module provides anteater plugin for AI.</description>
+	<url>https://github.com/ganteater/ai-ae-plugin</url>
+
+	<dependencies>
+		<dependency>
+			<groupId>com.openai</groupId>
+			<artifactId>openai-java</artifactId>
+			<version>4.7.1</version>
+		</dependency>
+		<dependency>
+			<groupId>org.jsoup</groupId>
+			<artifactId>jsoup</artifactId>
+			<version>1.14.3</version>
+		</dependency>
+	</dependencies>
+
+	<profiles>
+		<profile>
+			<id>pack</id>
+			<build>
+				<plugins>
+					<plugin>
+						<artifactId>maven-assembly-plugin</artifactId>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
+
+	<scm>
+		<connection>scm:git:https://github.com/ganteater/ai-ae-plugin.git</connection>
+		<developerConnection>scm:git:https://github.com/ganteater/ai-ae-plugin.git</developerConnection>
+		<url>https://github.com/ganteater/sql-ae-plugin</url>
+	</scm>
+
+	<issueManagement>
+		<url>https://github.com/ganteater/ai-ae-plugin/issues</url>
+	</issueManagement>
+</project>
