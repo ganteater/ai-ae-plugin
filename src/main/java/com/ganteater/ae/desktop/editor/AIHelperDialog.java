@@ -73,7 +73,7 @@ public class AIHelperDialog extends HelperDialog {
 						if (selectionEnd < caretPosition) {
 							textWithCursor.insert(selectionEnd + 1, "[SELECTION_END]");
 						} else {
-							textWithCursor.insert(selectionEnd + "[CURSOR]".length() + "[SELECTION_END] + 1".length(),
+							textWithCursor.insert(selectionEnd + "[CURSOR]".length() + "[SELECTION_END]".length() + 1,
 									"[SELECTION_END]");
 						}
 
@@ -96,6 +96,7 @@ public class AIHelperDialog extends HelperDialog {
 							responseText = responseText.replace("[CURSOR]", "");
 							caretPosition = cursor;
 						}
+						responseText = responseText.replace("[SELECTION_START]", "").replace("[SELECTION_END]", "");
 
 						getCodeHelper().hide();
 
