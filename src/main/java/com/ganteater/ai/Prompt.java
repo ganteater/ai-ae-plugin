@@ -1,5 +1,9 @@
 package com.ganteater.ai;
 
+import java.util.function.Consumer;
+
+import org.apache.commons.lang.StringUtils;
+
 public class Prompt {
 	private final String context;
 	private final String instruction;
@@ -7,6 +11,13 @@ public class Prompt {
 	private final String input;
 	private String hint;
 	private String source;
+
+	static private String appliedContext;
+	static private String appliedInstruction;
+	static private String appliedExamples;
+	static private String appliedInput;
+	static private String appliedHint;
+	static private String appliedSource;
 
 	// Private constructor to enforce usage of the Builder
 	private Prompt(Builder builder) {
@@ -47,22 +58,22 @@ public class Prompt {
 	public String buildPrompt() {
 		StringBuilder promptBuilder = new StringBuilder();
 
-		if (context != null && !context.isEmpty()) {
+		if (context != null && !context.isEmpty() && !StringUtils.equals(context, appliedContext)) {
 			promptBuilder.append("Context:\n").append(context).append("\n\n");
 		}
-		if (source != null && !source.isEmpty()) {
+		if (source != null && !source.isEmpty() && !StringUtils.equals(source, appliedSource)) {
 			promptBuilder.append("Source:\n").append(source).append("\n\n");
 		}
-		if (instruction != null && !instruction.isEmpty()) {
+		if (instruction != null && !instruction.isEmpty() && !StringUtils.equals(instruction, appliedInstruction)) {
 			promptBuilder.append("Instruction:\n").append(instruction).append("\n\n");
 		}
-		if (hint != null && !instruction.isEmpty()) {
+		if (hint != null && !hint.isEmpty() && !StringUtils.equals(hint, appliedHint)) {
 			promptBuilder.append("Hint:\n").append(hint).append("\n\n");
 		}
-		if (examples != null && !examples.isEmpty()) {
+		if (examples != null && !examples.isEmpty() && !StringUtils.equals(examples, appliedExamples)) {
 			promptBuilder.append("Examples:\n").append(examples).append("\n\n");
 		}
-		if (input != null && !input.isEmpty()) {
+		if (input != null && !input.isEmpty() && !StringUtils.equals(input, appliedInput)) {
 			promptBuilder.append("Input:\n").append(input).append("\n");
 		}
 
@@ -82,7 +93,14 @@ public class Prompt {
 		}
 
 		private String markerInstraction() {
-			return "Currect recipe code, if a part of code selected then [SELECTION_START] and [SELECTION_END] to use mark that and place the [CURSOR] position below";
+			StringBuilder markerInstraction = new StringBuilder(
+					"In the source can be used following special markers:\n");
+			Marker[] values = Marker.values();
+			for (int i = 0; i < values.length; i++) {
+				markerInstraction.append(i + ". " + values[i].toString() + " - " + values[i].getDescription() + "\n");
+			}
+
+			return markerInstraction.toString();
 		}
 
 		public Builder setContext(String context) {
@@ -130,5 +148,16 @@ public class Prompt {
 		public Prompt build() {
 			return new Prompt(this);
 		}
+	}
+
+	public void apply(Consumer<String> consumer) {
+		String promptString = buildPrompt();
+		consumer.accept(promptString);
+//		appliedContext = context;
+//		appliedInstruction = instruction;
+//		appliedExamples = examples;
+//		appliedInput = input;
+//		appliedHint = hint;
+//		appliedSource = source;
 	}
 }

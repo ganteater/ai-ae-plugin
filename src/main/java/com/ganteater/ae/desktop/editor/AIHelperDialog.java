@@ -4,25 +4,27 @@ import java.awt.Dimension;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URL;
-import java.util.List;
 
 import javax.swing.BorderFactory;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.SwingUtilities;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 
+import com.ganteater.ai.Marker;
+import com.ganteater.ai.MarkerExtractResult;
 import com.ganteater.ai.Prompt;
 import com.openai.client.OpenAIClient;
 import com.openai.models.ChatModel;
-import com.openai.models.responses.Response;
-import com.openai.models.responses.ResponseCreateParams;
-import com.openai.models.responses.ResponseOutputItem;
-import com.openai.models.responses.ResponseOutputMessage;
+import com.openai.models.chat.completions.ChatCompletion;
+import com.openai.models.chat.completions.ChatCompletionCreateParams;
+import com.openai.services.blocking.chat.ChatCompletionService;
 
 public class AIHelperDialog extends HelperDialog {
 
@@ -46,6 +48,7 @@ public class AIHelperDialog extends HelperDialog {
 		getContentPane().add(comp);
 
 		editor.addKeyListener(new KeyAdapter() {
+
 			@Override
 			public void keyPressed(KeyEvent e) {
 				switch (e.getKeyCode()) {
@@ -55,53 +58,60 @@ public class AIHelperDialog extends HelperDialog {
 				case KeyEvent.VK_ENTER:
 					String text = editor.getText();
 
-					String webpageUrl = "https://ganteater.com/commands.md";
-					try {
-						String relevantText = extractTextFromHtml(webpageUrl);
+					try (InputStream context = AIHelperDialog.class.getClassLoader()
+							.getResourceAsStream("commands.md")) {
+						String relevantText = IOUtils.toString(context);
 						TextEditor textEditor = getCodeHelper().getEditor();
 
 						int caretPosition = textEditor.getCaretPosition();
 						int selectionStart = textEditor.getSelectionStart();
 						int selectionEnd = textEditor.getSelectionEnd();
 
-						Prompt prompt = new Prompt.Builder().setContext(relevantText)
+						ChatCompletionService chat = client.chat().completions();
+
+						Prompt.Builder promptBuilder = new Prompt.Builder();
+						promptBuilder.setContext(relevantText)
 								.setSource(textEditor.getText(), caretPosition, selectionStart, selectionEnd)
-								.setHint("response should have only recipe code without any additional text.")
-								.setInput(text).build();
+								.setHint("response should have only recipe text without any additional texts.")
+								.setInput(text);
 
-						ResponseCreateParams params = ResponseCreateParams.builder().input(prompt.buildPrompt())
-								.model(ChatModel.GPT_4_1).build();
+						promptBuilder.build().apply(p -> {
+							com.openai.models.chat.completions.ChatCompletionCreateParams.Builder builder = ChatCompletionCreateParams
+									.builder();
 
-						Response response = client.responses().create(params);
-						List<ResponseOutputItem> output = response.output();
-						ResponseOutputMessage message = output.get(0).message().get();
-						String responseText = message.content().get(0).outputText().get().text();
+							ChatCompletionCreateParams params = builder.temperature(0.7).addAssistantMessage(p)
+									.model(ChatModel.GPT_4_1).build();
 
-						System.out.println(responseText);
+							ChatCompletion response = chat.create(params);
+							String responseText = response.choices().get(0).message().content().get();
 
-						int cursor = StringUtils.indexOf(responseText, "[CURSOR]");
-						if (cursor > 0) {
-							responseText = responseText.replace("[CURSOR]", "");
-							caretPosition = cursor;
-						}
-						responseText = responseText.replace("[SELECTION_START]", "").replace("[SELECTION_END]", "");
+							System.out.println(responseText);
 
-						getCodeHelper().hide();
+							getCodeHelper().hide();
 
-						String code = StringUtils.substringBetween(responseText, "```xml\n", "```");
-						if (code == null) {
-							code = responseText;
-						}
-						getCodeHelper().getEditor().setText(code);
-						if (StringUtils.isNotBlank(code)) {
-							getCodeHelper().getEditor().getRecipePanel().compileTask();
-							try {
-								textEditor.setCaretPosition(caretPosition);
-							} catch (IllegalArgumentException e1) {
-								textEditor.setCaretPosition(code.length());
+							String code = StringUtils.substringBetween(responseText, "```xml\n", "```");
+							if (code == null) {
+								code = responseText;
 							}
-						}
-						setVisible(false);
+
+							MarkerExtractResult mextract = Marker.extractAll(code);
+							int cursor = mextract.getPosition(Marker.CURSOR);
+							int start = mextract.getPosition(Marker.SELECTION_START);
+							int end = mextract.getPosition(Marker.SELECTION_END);
+
+							getCodeHelper().getEditor().setText(mextract.getText());
+							if (StringUtils.isNotBlank(code)) {
+
+								getCodeHelper().getEditor().getRecipePanel().compileTask();
+								try {
+									textEditor.setCaretPosition(cursor < 0 ? caretPosition : cursor);
+									textEditor.select(start, end);
+								} catch (IllegalArgumentException e1) {
+									textEditor.setCaretPosition(code.length());
+								}
+							}
+							setVisible(false);
+						});
 
 					} catch (Exception e1) {
 						// TODO Auto-generated catch block

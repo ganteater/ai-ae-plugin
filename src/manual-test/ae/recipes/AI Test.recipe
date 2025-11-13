@@ -1,5 +1,14 @@
 <Recipe name="AI Test">
+	<About>
+		<description>This recipe prompts the user for a number, adds 4 to it, outputs the result, and then iterates from 0 to 4 outputting each value.</description> 
+		<author email="viktor.tovstyi@gmail.com" /> 
+	</About> 
 	<Var name="Leng" type="number" init="console" /> 
 	<Calculate name="Result" expressions="$var{Leng} + 4" /> 
 	<Out name="Result" /> 
+	<Var name="i" type="number" value="0" /> 
+	<While name="i" notEqual="5">
+		<Out name="i" /> 
+		<Calculate name="i" expressions="$var{i} + 1" /> 
+	</While> 
 </Recipe> 
