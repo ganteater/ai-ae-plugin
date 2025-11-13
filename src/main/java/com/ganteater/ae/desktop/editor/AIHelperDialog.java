@@ -16,6 +16,7 @@ import org.apache.commons.lang.StringUtils;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 
+import com.ganteater.ai.Prompt;
 import com.openai.client.OpenAIClient;
 import com.openai.models.ChatModel;
 import com.openai.models.responses.Response;
@@ -57,31 +58,18 @@ public class AIHelperDialog extends HelperDialog {
 					String webpageUrl = "https://ganteater.com/commands.md";
 					try {
 						String relevantText = extractTextFromHtml(webpageUrl);
-
 						TextEditor textEditor = getCodeHelper().getEditor();
-						StringBuilder textWithCursor = new StringBuilder(textEditor.getText());
+
 						int caretPosition = textEditor.getCaretPosition();
-						textWithCursor.insert(caretPosition, "[CURSOR]");
 						int selectionStart = textEditor.getSelectionStart();
-						if (selectionStart < caretPosition) {
-							textWithCursor.insert(selectionStart - 1, "[SELECTION_START]");
-						} else {
-							textWithCursor.insert(selectionStart + "[CURSOR]".length() - 1, "[SELECTION_START]");
-						}
-
 						int selectionEnd = textEditor.getSelectionEnd();
-						if (selectionEnd < caretPosition) {
-							textWithCursor.insert(selectionEnd + 1, "[SELECTION_END]");
-						} else {
-							textWithCursor.insert(selectionEnd + "[CURSOR]".length() + "[SELECTION_END]".length() + 1,
-									"[SELECTION_END]");
-						}
 
-						ResponseCreateParams params = ResponseCreateParams.builder()
-								.input("Here is information from a webpage: " + relevantText
-										+ "\n\nCurrect recipe code, if a part of code selected then [SELECTION_START] and [SELECTION_END] to use mark that and place the [CURSOR] position below:\n"
-										+ textWithCursor.toString() + "\n\nBased on this, answer my question: \"" + text
-										+ "\"Output format hint: response should have only recipe code without any additional text.")
+						Prompt prompt = new Prompt.Builder().setContext(relevantText)
+								.setSource(textEditor.getText(), caretPosition, selectionStart, selectionEnd)
+								.setHint("response should have only recipe code without any additional text.")
+								.setInput(text).build();
+
+						ResponseCreateParams params = ResponseCreateParams.builder().input(prompt.buildPrompt())
 								.model(ChatModel.GPT_4_1).build();
 
 						Response response = client.responses().create(params);
