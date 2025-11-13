@@ -1,0 +1,53 @@
+<Recipe name="FC Post">
+	<About>
+		<description>
+			This recipe demonstrates common Anteater commands for array manipulation, conditional logic, and
+			output. It covers variable creation, array operations, conditionals, and string replacement. The
+			recipe provides practical examples of how to define and output variables, sort arrays, get array
+			size, access specific array elements, check for the existence of values within arrays, and perform
+			string replacement. Additionally, it illustrates the use of conditional statements to perform logic
+			based on computed values. This recipe is suitable for users looking to understand foundational
+			Anteater scripting techniques for workflow automation and data processing. The examples provided
+			are modular and can be adapted to a wide range of scenarios, making this recipe a useful reference
+			for both new and experienced Anteater users. Step-by-step, the recipe demonstrates best practices
+			for handling arrays and strings, performing validation, and structuring scripts in a clear and
+			organized manner, with explicit output after each key operation to aid in debugging and
+			comprehension. Furthermore, the recipe highlights error handling in array operations, demonstrates
+			dynamic value checks, and showcases how to perform both in-place variable updates and conditional
+			branching for robust script logic. By following this recipe, users will gain insights into efficient
+			Anteater script design, enabling them to automate repetitive tasks, validate data flows, and handle
+			exceptions gracefully within their automated workflows.
+		</description> 
+		<author name="Anteater Example Author" email="example.author@anteater.com" messager="Slack: @anteater_author" phone="+1000000000" /> 
+	</About> 
+	<Var name="greeting" value="Hello, World!" /> 
+	<Out name="greeting" /> 
+	<Var name="numbers" type="array">
+		<item>3</item> 
+		<item>1</item> 
+		<item>2</item> 
+	</Var> 
+	<Sort name="numbers" order="asc" /> 
+	<Out name="numbers" /> 
+	<ArraySize name="numbers" result="size" /> 
+	<Out name="size" /> 
+	<ArrayElement name="array" index="1" /> 
+	<Out name="array::1" /> 
+	<CheckInArray name="numbers" value="2" onErrorMsg="2 not found!" /> 
+	<Out>Number 2 exists in the array.</Out> 
+	<Var name="text" value="Hello, Anteater!" /> 
+	<Replace name="text" search="Anteater" replace="World" /> 
+	<Out name="text" /> 
+	<If value="$var{size}" equals="3">
+		<Out>The array has exactly 3 elements.</Out> 
+		<Else>
+			<Out>Array size is not 3.</Out> 
+		</Else> 
+	</If> 
+	<Var name="count" value="0" /> 
+	<While name="count" notEqual="5">
+		<Out name="count" /> 
+		<Inc name="count" /> 
+	</While> 
+	<Out>Loop completed!</Out> 
+</Recipe> 

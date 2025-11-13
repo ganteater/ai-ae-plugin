@@ -10,9 +10,10 @@ The `<About>` tag is used to provide metadata and descriptive information about 
 
 #### **Structure and Usage**
 
-The `<About>` tag can contain the following nested elements:
+The <About> tag may contain the following nested elements. Note that all nested tags begin with lowercase letters:
 
 1. **`<description>`**:
+   - The tag name should be <description>, not <Description>.
    - Provides a textual description of the recipe or module.
    - Use this to explain the purpose, functionality, or context of the recipe.
    - Example:

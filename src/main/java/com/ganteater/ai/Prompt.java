@@ -138,7 +138,7 @@ public class Prompt {
 				textWithCursor.insert(selectionStart, Marker.SELECTION_START);
 				textWithCursor.insert(selectionEnd + Marker.SELECTION_START.length(), Marker.SELECTION_END);
 			} else {
-				textWithCursor.insert(caretPosition - 1, Marker.CURSOR);
+				textWithCursor.insert(caretPosition, Marker.CURSOR);
 			}
 
 			this.source = textWithCursor.toString();

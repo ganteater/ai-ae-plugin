@@ -1,14 +1,14 @@
 package com.ganteater.ae.desktop.editor;
 
+import java.io.IOException;
+
 import com.ganteater.ae.processor.Processor;
 import com.openai.client.OpenAIClient;
 import com.openai.client.okhttp.OpenAIOkHttpClient;
 
 public class AIHelper extends CodeHelper {
 
-	private static OpenAIClient client;
-
-	public AIHelper(TextEditor textEditor) {
+	public AIHelper(TextEditor textEditor) throws IOException {
 		super(textEditor);
 
 		TaskEditor recipeEditor = getRecipePanel();
@@ -17,7 +17,8 @@ public class AIHelper extends CodeHelper {
 		if (apiKey == null) {
 			throw new IllegalArgumentException("apiKey attribute required.");
 		}
-		client = OpenAIOkHttpClient.builder().apiKey(apiKey).build();
+		OpenAIClient client = OpenAIOkHttpClient.builder().apiKey(apiKey).build();
+
 		AIHelperDialog aiHelperDialog = new AIHelperDialog(this, client);
 
 		super.setDefaultDialog(aiHelperDialog);

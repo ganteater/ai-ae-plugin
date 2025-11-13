@@ -1,6 +1,6 @@
 <Recipe name="AI Test">
 	<About>
-		<description>This recipe prompts the user for a number, adds 4 to it, outputs the result, and then iterates from 0 to 4 outputting each value.</description> 
+		<description>This recipe prompts the user for a number, adds 4 to it, outputs the result, and then iterates from 0 to 4 outputting each value. Additionally, it demonstrates basic variable initialization, arithmetic calculation, looping structures, and output operations. This recipe is intended as an introductory example for understanding the control flow and syntax of recipe-based automation. It also includes an extra loop that counts from 0 to 99, outputting each number, to further illustrate loop constructs.</description> 
 		<author email="viktor.tovstyi@gmail.com" /> 
 	</About> 
 	<Var name="Leng" type="number" init="console" /> 
@@ -9,6 +9,10 @@
 	<Var name="i" type="number" value="0" /> 
 	<While name="i" notEqual="5">
 		<Out name="i" /> 
-		<Calculate name="i" expressions="$var{i} + 1" /> 
+	</While> 
+	<Var name="j" type="number" value="0" /> 
+	<While name="j" notEqual="100">
+		<Out name="j" /> 
+		<Calculate name="j" expressions="$var{j} + 1" /> 
 	</While> 
 </Recipe> 
