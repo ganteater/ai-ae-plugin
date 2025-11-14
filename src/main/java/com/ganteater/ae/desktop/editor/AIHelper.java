@@ -1,7 +1,12 @@
 package com.ganteater.ae.desktop.editor;
 
 import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 
+import com.ganteater.ae.processor.BaseProcessor;
 import com.ganteater.ae.processor.Processor;
 import com.openai.client.OpenAIClient;
 import com.openai.client.okhttp.OpenAIOkHttpClient;
@@ -19,9 +24,34 @@ public class AIHelper extends CodeHelper {
 		}
 		OpenAIClient client = OpenAIOkHttpClient.builder().apiKey(apiKey).build();
 
-		AIHelperDialog aiHelperDialog = new AIHelperDialog(this, client);
+		String examplesContext = getExampleContext();
+		AIHelperDialog aiHelperDialog = new AIHelperDialog(this, client, examplesContext);
 
 		super.setDefaultDialog(aiHelperDialog);
+
+	}
+
+	private String getExampleContext() {
+		StringBuilder examplesContext = new StringBuilder("# Command List of BaseProcessor\n");
+		Map<Class<? extends Processor>, List<String>> commandList = super.getCommandList(null, BaseProcessor.class);
+		Map<String, List<String>> commandExamples = getCommandExamples(commandList);
+		Set<Entry<String, List<String>>> entrySet = commandExamples.entrySet();
+
+		for (Entry<String, List<String>> entry : entrySet) {
+			String commandName = entry.getKey();
+			examplesContext.append("## " + commandName + "\n");
+
+			List<String> examples = entry.getValue();
+			if (!examples.isEmpty()) {
+				examplesContext.append("### Examples\n");
+				int i = 1;
+				for (String example : examples) {
+					examplesContext.append((i++) + ". " + example + "\n");
+				}
+			}
+		}
+
+		return examplesContext.toString();
 	}
 
 }

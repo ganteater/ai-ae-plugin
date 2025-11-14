@@ -33,10 +33,11 @@ import com.openai.services.blocking.ResponseService;
 public class AIHelperDialog extends HelperDialog {
 
 	private JTextArea editor = new JTextArea();
+	private String examplesContext;
 
-	public AIHelperDialog(final CodeHelper codeHelper, final OpenAIClient client) {
+	public AIHelperDialog(final CodeHelper codeHelper, final OpenAIClient client, String examplesContext) {
 		super(codeHelper);
-
+		this.examplesContext = examplesContext;
 		setAlwaysOnTop(true);
 		setUndecorated(true);
 
@@ -71,8 +72,7 @@ public class AIHelperDialog extends HelperDialog {
 	protected void performRequest(OpenAIClient client) {
 		String text = editor.getText();
 
-		try (InputStream context = AIHelperDialog.class.getClassLoader().getResourceAsStream("commands.md")) {
-			String relevantText = IOUtils.toString(context);
+		try {
 			TextEditor textEditor = getCodeHelper().getEditor();
 
 			int caretPosition = textEditor.getCaretPosition();
@@ -82,7 +82,7 @@ public class AIHelperDialog extends HelperDialog {
 			ResponseService responses = client.responses();
 
 			Prompt.Builder promptBuilder = new Prompt.Builder();
-			promptBuilder.setContext(relevantText)
+			promptBuilder.setContext(this.examplesContext)
 					.setSource(textEditor.getText(), caretPosition, selectionStart, selectionEnd)
 					.setHint("response should have only recipe text without any additional texts.").setInput(text);
 
@@ -110,16 +110,20 @@ public class AIHelperDialog extends HelperDialog {
 				int start = mextract.getPosition(Marker.SELECTION_START);
 				int end = mextract.getPosition(Marker.SELECTION_END);
 
-				getCodeHelper().getEditor().setText(mextract.getText());
+				textEditor.setText(mextract.getText());
 				if (StringUtils.isNotBlank(code)) {
+					textEditor.getRecipePanel().compileTask();
 
-					getCodeHelper().getEditor().getRecipePanel().compileTask();
+					TaskEditor recipePanel = getCodeHelper().getEditor().getRecipePanel();
+					recipePanel.compileTask();
+					recipePanel.refreshTaskTree();
 					try {
 						textEditor.setCaretPosition(cursor < 0 ? caretPosition : cursor);
 						textEditor.select(start, end);
 					} catch (IllegalArgumentException e1) {
 						textEditor.setCaretPosition(code.length());
 					}
+
 				}
 			});
 
