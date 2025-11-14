@@ -1,6 +1,8 @@
 package com.ganteater.ae.desktop.editor;
 
 import java.awt.Dimension;
+import java.awt.event.FocusAdapter;
+import java.awt.event.FocusEvent;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.io.IOException;
@@ -55,7 +57,6 @@ public class AIHelperDialog extends HelperDialog {
 		getContentPane().add(comp);
 
 		editor.addKeyListener(new KeyAdapter() {
-
 			@Override
 			public void keyPressed(KeyEvent e) {
 				switch (e.getKeyCode()) {
@@ -66,6 +67,15 @@ public class AIHelperDialog extends HelperDialog {
 					new Thread(() -> performRequest(client)).start();
 					setVisible(false);
 					break;
+				}
+			}
+		});
+		
+		editor.addFocusListener(new FocusAdapter() {
+			@Override
+			public void focusLost(FocusEvent e) {
+				if (e.getOppositeComponent() != AIHelperDialog.this && e.getOppositeComponent() != editor) {
+					setVisible(false);
 				}
 			}
 		});

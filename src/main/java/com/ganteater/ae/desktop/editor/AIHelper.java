@@ -25,15 +25,18 @@ public class AIHelper extends CodeHelper {
 		OpenAIClient client = OpenAIOkHttpClient.builder().apiKey(apiKey).build();
 
 		AIHelperDialog aiHelperDialog = new AIHelperDialog(this, client);
-
 		super.setDefaultDialog(aiHelperDialog);
-
 	}
 
 	public String getExampleContext(Set<Class<BaseProcessor>> processorClassList) {
 		StringBuilder examplesContext = new StringBuilder("# Commands\n");
 		for (Class<BaseProcessor> processorClass : processorClassList) {
-			examplesContext.append("## Command List of " + processorClass.getName() + "\n");
+			String name = processorClass.getSimpleName();
+			examplesContext.append("## Command List of " + name + " processor\n");
+			examplesContext.append("For the Extern tag, you can use the fully qualified class name: "
+					+ processorClass.getName() + " for the class attribute, or the simple class name: " + name
+					+ " if the package is" + Processor.STG_PROCESSOR_PACKAGE_NAME + "\n");
+
 			Map<Class<? extends Processor>, List<String>> commandList = super.getCommandList(null, processorClass);
 			Map<String, List<String>> commandExamples = getCommandExamples(commandList);
 			Set<Entry<String, List<String>>> entrySet = commandExamples.entrySet();
@@ -47,6 +50,7 @@ public class AIHelper extends CodeHelper {
 					examplesContext.append("#### Examples\n");
 					int i = 1;
 					for (String example : examples) {
+						example = example.replace("\"", "'");
 						examplesContext.append((i++) + ". " + example + "\n");
 					}
 				}

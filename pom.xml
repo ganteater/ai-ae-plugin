@@ -27,6 +27,11 @@
 			<artifactId>jsoup</artifactId>
 			<version>1.14.3</version>
 		</dependency>
+		<dependency>
+			<groupId>com.ganteater.plugins</groupId>
+			<artifactId>web-ae-plugin</artifactId>
+			<version>1.2.4-SNAPSHOT</version>
+		</dependency>
 	</dependencies>
 
 	<profiles>
