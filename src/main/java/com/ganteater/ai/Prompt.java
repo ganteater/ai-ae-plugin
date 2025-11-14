@@ -2,8 +2,6 @@ package com.ganteater.ai;
 
 import java.util.function.Consumer;
 
-import org.apache.commons.lang.StringUtils;
-
 public class Prompt {
 	private final String context;
 	private final String instruction;
@@ -11,13 +9,6 @@ public class Prompt {
 	private final String input;
 	private String hint;
 	private String source;
-
-	static private String appliedContext;
-	static private String appliedInstruction;
-	static private String appliedExamples;
-	static private String appliedInput;
-	static private String appliedHint;
-	static private String appliedSource;
 
 	// Private constructor to enforce usage of the Builder
 	private Prompt(Builder builder) {
@@ -58,22 +49,22 @@ public class Prompt {
 	public String buildPrompt() {
 		StringBuilder promptBuilder = new StringBuilder();
 
-		if (context != null && !context.isEmpty() && !StringUtils.equals(context, appliedContext)) {
+		if (context != null && !context.isEmpty()) {
 			promptBuilder.append("Context:\n").append(context).append("\n\n");
 		}
-		if (source != null && !source.isEmpty() && !StringUtils.equals(source, appliedSource)) {
+		if (source != null && !source.isEmpty()) {
 			promptBuilder.append("Source:\n").append(source).append("\n\n");
 		}
-		if (instruction != null && !instruction.isEmpty() && !StringUtils.equals(instruction, appliedInstruction)) {
+		if (instruction != null && !instruction.isEmpty()) {
 			promptBuilder.append("Instruction:\n").append(instruction).append("\n\n");
 		}
-		if (hint != null && !hint.isEmpty() && !StringUtils.equals(hint, appliedHint)) {
+		if (hint != null && !hint.isEmpty()) {
 			promptBuilder.append("Hint:\n").append(hint).append("\n\n");
 		}
-		if (examples != null && !examples.isEmpty() && !StringUtils.equals(examples, appliedExamples)) {
+		if (examples != null && !examples.isEmpty()) {
 			promptBuilder.append("Examples:\n").append(examples).append("\n\n");
 		}
-		if (input != null && !input.isEmpty() && !StringUtils.equals(input, appliedInput)) {
+		if (input != null && !input.isEmpty()) {
 			promptBuilder.append("Input:\n").append(input).append("\n");
 		}
 
@@ -153,11 +144,5 @@ public class Prompt {
 	public void apply(Consumer<String> consumer) {
 		String promptString = buildPrompt();
 		consumer.accept(promptString);
-//		appliedContext = context;
-//		appliedInstruction = instruction;
-//		appliedExamples = examples;
-//		appliedInput = input;
-//		appliedHint = hint;
-//		appliedSource = source;
 	}
 }

@@ -24,29 +24,31 @@ public class AIHelper extends CodeHelper {
 		}
 		OpenAIClient client = OpenAIOkHttpClient.builder().apiKey(apiKey).build();
 
-		String examplesContext = getExampleContext();
-		AIHelperDialog aiHelperDialog = new AIHelperDialog(this, client, examplesContext);
+		AIHelperDialog aiHelperDialog = new AIHelperDialog(this, client);
 
 		super.setDefaultDialog(aiHelperDialog);
 
 	}
 
-	private String getExampleContext() {
-		StringBuilder examplesContext = new StringBuilder("# Command List of BaseProcessor\n");
-		Map<Class<? extends Processor>, List<String>> commandList = super.getCommandList(null, BaseProcessor.class);
-		Map<String, List<String>> commandExamples = getCommandExamples(commandList);
-		Set<Entry<String, List<String>>> entrySet = commandExamples.entrySet();
+	public String getExampleContext(Set<Class<BaseProcessor>> processorClassList) {
+		StringBuilder examplesContext = new StringBuilder("# Commands\n");
+		for (Class<BaseProcessor> processorClass : processorClassList) {
+			examplesContext.append("## Command List of " + processorClass.getName() + "\n");
+			Map<Class<? extends Processor>, List<String>> commandList = super.getCommandList(null, processorClass);
+			Map<String, List<String>> commandExamples = getCommandExamples(commandList);
+			Set<Entry<String, List<String>>> entrySet = commandExamples.entrySet();
 
-		for (Entry<String, List<String>> entry : entrySet) {
-			String commandName = entry.getKey();
-			examplesContext.append("## " + commandName + "\n");
+			for (Entry<String, List<String>> entry : entrySet) {
+				String commandName = entry.getKey();
+				examplesContext.append("### " + commandName + "\n");
 
-			List<String> examples = entry.getValue();
-			if (!examples.isEmpty()) {
-				examplesContext.append("### Examples\n");
-				int i = 1;
-				for (String example : examples) {
-					examplesContext.append((i++) + ". " + example + "\n");
+				List<String> examples = entry.getValue();
+				if (!examples.isEmpty()) {
+					examplesContext.append("#### Examples\n");
+					int i = 1;
+					for (String example : examples) {
+						examplesContext.append((i++) + ". " + example + "\n");
+					}
 				}
 			}
 		}

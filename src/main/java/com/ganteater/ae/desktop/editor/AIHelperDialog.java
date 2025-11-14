@@ -4,20 +4,24 @@ import java.awt.Dimension;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.URL;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import javax.swing.BorderFactory;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.SwingUtilities;
 
-import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 
+import com.ganteater.ae.processor.BaseProcessor;
+import com.ganteater.ae.processor.Processor;
+import com.ganteater.ae.util.xml.easyparser.EasyParser;
+import com.ganteater.ae.util.xml.easyparser.Node;
 import com.ganteater.ai.Marker;
 import com.ganteater.ai.MarkerExtractResult;
 import com.ganteater.ai.Prompt;
@@ -33,11 +37,9 @@ import com.openai.services.blocking.ResponseService;
 public class AIHelperDialog extends HelperDialog {
 
 	private JTextArea editor = new JTextArea();
-	private String examplesContext;
 
-	public AIHelperDialog(final CodeHelper codeHelper, final OpenAIClient client, String examplesContext) {
+	public AIHelperDialog(final CodeHelper codeHelper, final OpenAIClient client) {
 		super(codeHelper);
-		this.examplesContext = examplesContext;
 		setAlwaysOnTop(true);
 		setUndecorated(true);
 
@@ -82,7 +84,26 @@ public class AIHelperDialog extends HelperDialog {
 			ResponseService responses = client.responses();
 
 			Prompt.Builder promptBuilder = new Prompt.Builder();
-			promptBuilder.setContext(this.examplesContext)
+
+			Set<Class<BaseProcessor>> processorClassList = new HashSet<Class<BaseProcessor>>();
+			processorClassList.add(BaseProcessor.class);
+			Node taskNode = new EasyParser().getObject(textEditor.getRecipePanel().getEditor().getText());
+			Node[] nodes = taskNode.getNodes("Extern");
+			for (Node node : nodes) {
+				try {
+					String processorClassName = node.getAttribute("class");
+					processorClassName = Processor.getFullClassName(processorClassName);
+					Class<BaseProcessor> forName = (Class<BaseProcessor>) Class.forName(processorClassName);
+					processorClassList.add(forName);
+				} catch (ClassNotFoundException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+
+			String examplesContext = ((AIHelper) getCodeHelper()).getExampleContext(processorClassList);
+
+			promptBuilder.setContext(examplesContext)
 					.setSource(textEditor.getText(), caretPosition, selectionStart, selectionEnd)
 					.setHint("response should have only recipe text without any additional texts.").setInput(text);
 
