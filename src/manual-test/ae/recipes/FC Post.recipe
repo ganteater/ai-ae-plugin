@@ -1,22 +1,22 @@
 <Recipe name="FC Post">
 	<About>
 		<description>
-			This recipe demonstrates common Anteater commands for array manipulation, conditional logic, and
-			output. It covers variable creation, array operations, conditionals, and string replacement. The
-			recipe provides practical examples of how to define and output variables, sort arrays, get array
-			size, access specific array elements, check for the existence of values within arrays, and perform
-			string replacement. Additionally, it illustrates the use of conditional statements to perform logic
-			based on computed values. This recipe is suitable for users looking to understand foundational
-			Anteater scripting techniques for workflow automation and data processing. The examples provided
-			are modular and can be adapted to a wide range of scenarios, making this recipe a useful reference
-			for both new and experienced Anteater users. Step-by-step, the recipe demonstrates best practices
-			for handling arrays and strings, performing validation, and structuring scripts in a clear and
-			organized manner, with explicit output after each key operation to aid in debugging and
-			comprehension. Furthermore, the recipe highlights error handling in array operations, demonstrates
-			dynamic value checks, and showcases how to perform both in-place variable updates and conditional
-			branching for robust script logic. By following this recipe, users will gain insights into efficient
-			Anteater script design, enabling them to automate repetitive tasks, validate data flows, and handle
-			exceptions gracefully within their automated workflows.
+This recipe demonstrates common Anteater commands for array manipulation, conditional logic, and
+output. It covers variable creation, array operations, conditionals, and string replacement. The
+recipe provides practical examples of how to define and output variables, sort arrays, get array
+size, access specific array elements, check for the existence of values within arrays, and perform
+string replacement. Additionally, it illustrates the use of conditional statements to perform logic
+based on computed values. This recipe is suitable for users looking to understand foundational
+Anteater scripting techniques for workflow automation and data processing. The examples provided
+are modular and can be adapted to a wide range of scenarios, making this recipe a useful reference
+for both new and experienced Anteater users. Step-by-step, the recipe demonstrates best practices
+for handling arrays and strings, performing validation, and structuring scripts in a clear and
+organized manner, with explicit output after each key operation to aid in debugging and
+comprehension. Furthermore, the recipe highlights error handling in array operations, demonstrates
+dynamic value checks, and showcases how to perform both in-place variable updates and conditional
+branching for robust script logic. By following this recipe, users will gain insights into efficient
+Anteater script design, enabling them to automate repetitive tasks, validate data flows, and handle
+exceptions gracefully within their automated workflows.
 		</description> 
 		<author name="Anteater Example Author" email="example.author@anteater.com" messager="Slack: @anteater_author" phone="+1000000000" /> 
 	</About> 

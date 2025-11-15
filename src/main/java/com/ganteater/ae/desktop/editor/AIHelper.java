@@ -3,11 +3,13 @@ package com.ganteater.ae.desktop.editor;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
+
+import org.apache.commons.lang.StringUtils;
 
 import com.ganteater.ae.processor.BaseProcessor;
 import com.ganteater.ae.processor.Processor;
+import com.ganteater.ae.processor.annotation.CommandInfo;
 import com.openai.client.OpenAIClient;
 import com.openai.client.okhttp.OpenAIOkHttpClient;
 
@@ -28,35 +30,57 @@ public class AIHelper extends CodeHelper {
 		super.setDefaultDialog(aiHelperDialog);
 	}
 
-	public String getExampleContext(Set<Class<BaseProcessor>> processorClassList) {
+	public String getExampleContext(Set<String> processorClassNameList) {
 		StringBuilder examplesContext = new StringBuilder("# Commands\n");
-		for (Class<BaseProcessor> processorClass : processorClassList) {
-			String name = processorClass.getSimpleName();
-			examplesContext.append("## Command List of " + name + " processor\n");
-			examplesContext.append("For the Extern tag, you can use the fully qualified class name: "
-					+ processorClass.getName() + " for the class attribute, or the simple class name: " + name
-					+ " if the package is" + Processor.STG_PROCESSOR_PACKAGE_NAME + "\n");
 
-			Map<Class<? extends Processor>, List<String>> commandList = super.getCommandList(null, processorClass);
-			Map<String, List<String>> commandExamples = getCommandExamples(commandList);
-			Set<Entry<String, List<String>>> entrySet = commandExamples.entrySet();
+		for (String processorClassName : processorClassNameList) {
 
-			for (Entry<String, List<String>> entry : entrySet) {
-				String commandName = entry.getKey();
-				examplesContext.append("### " + commandName + "\n");
+			processorClassName = Processor.getFullClassName(processorClassName);
+			@SuppressWarnings("unchecked")
+			Class<BaseProcessor> processorClass;
+			try {
+				processorClass = (Class<BaseProcessor>) Class.forName(processorClassName);
 
-				List<String> examples = entry.getValue();
-				if (!examples.isEmpty()) {
-					examplesContext.append("#### Examples\n");
-					int i = 1;
-					for (String example : examples) {
-						example = example.replace("\"", "'");
-						examplesContext.append((i++) + ". " + example + "\n");
+				String name = processorClass.getSimpleName();
+				examplesContext.append("## Command Processor: " + name + "\n");
+				examplesContext.append("Fully qualified class name: " + processorClass.getName() + "\n");
+
+				List<CommandInfo> commandList = super.getCommandList(null, processorClass);
+				for (CommandInfo cominfo : commandList) {
+
+					examplesContext.append("### Command `" + cominfo.getName() + "`\n");
+					String description = cominfo.getDescription();
+					if (StringUtils.isNotEmpty(description)) {
+						examplesContext.append("Description: " + description + "\n");
+					}
+					List<String> examples = cominfo.getExamples();
+					if (!examples.isEmpty()) {
+						examplesContext.append("#### Examples\n");
+						int i = 1;
+						for (String example : examples) {
+							example = example.replace("\"", "'");
+							examplesContext.append((i++) + ". " + example + "\n");
+						}
 					}
 				}
+			} catch (ClassNotFoundException e) {
+				examplesContext.append("## Command Processor: " + processorClassName + "\n");
+				examplesContext.append("Not found.\n");
 			}
 		}
 
+		return examplesContext.toString();
+	}
+
+	public String getSystemVariablesContext() {
+		Map<String, Object> startVariables = getRecipePanel().getManager().getSystemVariables();
+		StringBuilder examplesContext = new StringBuilder("# System Variable Names\n");
+
+		Set<String> keySet = startVariables.keySet();
+		int i = 1;
+		for (String name : keySet) {
+			examplesContext.append((i++) + ". " + name + "\n");
+		}
 		return examplesContext.toString();
 	}
 

@@ -6,6 +6,7 @@ import java.awt.event.FocusEvent;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URL;
 import java.util.HashSet;
 import java.util.List;
@@ -16,6 +17,7 @@ import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.SwingUtilities;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -39,6 +41,7 @@ import com.openai.services.blocking.ResponseService;
 public class AIHelperDialog extends HelperDialog {
 
 	private JTextArea editor = new JTextArea();
+	private String context;
 
 	public AIHelperDialog(final CodeHelper codeHelper, final OpenAIClient client) {
 		super(codeHelper);
@@ -53,6 +56,8 @@ public class AIHelperDialog extends HelperDialog {
 		comp.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
 		comp.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
 		comp.setPreferredSize(new Dimension(300, 200));
+
+		this.context = loadResource("/context.md");
 
 		getContentPane().add(comp);
 
@@ -70,7 +75,7 @@ public class AIHelperDialog extends HelperDialog {
 				}
 			}
 		});
-		
+
 		editor.addFocusListener(new FocusAdapter() {
 			@Override
 			public void focusLost(FocusEvent e) {
@@ -79,6 +84,7 @@ public class AIHelperDialog extends HelperDialog {
 				}
 			}
 		});
+
 	}
 
 	protected void performRequest(OpenAIClient client) {
@@ -95,25 +101,22 @@ public class AIHelperDialog extends HelperDialog {
 
 			Prompt.Builder promptBuilder = new Prompt.Builder();
 
-			Set<Class<BaseProcessor>> processorClassList = new HashSet<Class<BaseProcessor>>();
-			processorClassList.add(BaseProcessor.class);
+			Set<String> processorClassList = new HashSet<>();
+			processorClassList.add(BaseProcessor.class.getName());
 			Node taskNode = new EasyParser().getObject(textEditor.getRecipePanel().getEditor().getText());
 			Node[] nodes = taskNode.getNodes("Extern");
 			for (Node node : nodes) {
-				try {
-					String processorClassName = node.getAttribute("class");
-					processorClassName = Processor.getFullClassName(processorClassName);
-					Class<BaseProcessor> forName = (Class<BaseProcessor>) Class.forName(processorClassName);
-					processorClassList.add(forName);
-				} catch (ClassNotFoundException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
+				String processorClassName = node.getAttribute("class");
+				processorClassList.add(processorClassName);
 			}
 
-			String examplesContext = ((AIHelper) getCodeHelper()).getExampleContext(processorClassList);
+			StringBuilder context = new StringBuilder(this.context);
+			AIHelper aiHelper = (AIHelper) getCodeHelper();
+			String commands = aiHelper.getExampleContext(processorClassList);
+			context.append(commands);
+			context.append(aiHelper.getSystemVariablesContext());
 
-			promptBuilder.setContext(examplesContext)
+			promptBuilder.setContext(context.toString())
 					.setSource(textEditor.getText(), caretPosition, selectionStart, selectionEnd)
 					.setHint("response should have only recipe text without any additional texts.").setInput(text);
 
@@ -150,7 +153,9 @@ public class AIHelperDialog extends HelperDialog {
 					recipePanel.refreshTaskTree();
 					try {
 						textEditor.setCaretPosition(cursor < 0 ? caretPosition : cursor);
-						textEditor.select(start, end);
+						if (start > 0) {
+							textEditor.select(start, end);
+						}
 					} catch (IllegalArgumentException e1) {
 						textEditor.setCaretPosition(code.length());
 					}
@@ -162,6 +167,16 @@ public class AIHelperDialog extends HelperDialog {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
 		}
+	}
+
+	public static String loadResource(String name) {
+		String result = null;
+		try (InputStream is = AIHelperDialog.class.getResourceAsStream(name)) {
+			result = IOUtils.toString(is);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return result;
 	}
 
 	private static final long serialVersionUID = 1L;
