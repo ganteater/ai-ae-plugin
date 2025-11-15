@@ -23,7 +23,6 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 
 import com.ganteater.ae.processor.BaseProcessor;
-import com.ganteater.ae.processor.Processor;
 import com.ganteater.ae.util.xml.easyparser.EasyParser;
 import com.ganteater.ae.util.xml.easyparser.Node;
 import com.ganteater.ai.Marker;
@@ -122,8 +121,7 @@ public class AIHelperDialog extends HelperDialog {
 
 			promptBuilder.build().apply(p -> {
 				Builder builder = ResponseCreateParams.builder();
-
-				ResponseCreateParams params = builder.temperature(0.7).input(p).model(ChatModel.GPT_4_1).build();
+				ResponseCreateParams params = builder.temperature(0.5).input(p).model(ChatModel.GPT_4_1).build();
 
 				Response response = responses.create(params);
 				List<ResponseOutputItem> output = response.output();

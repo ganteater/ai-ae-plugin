@@ -58,7 +58,7 @@ public class AIHelper extends CodeHelper {
 						examplesContext.append("#### Examples\n");
 						int i = 1;
 						for (String example : examples) {
-							example = example.replace("\"", "'");
+							example = example.replace("'", "\"");
 							examplesContext.append((i++) + ". " + example + "\n");
 						}
 					}
