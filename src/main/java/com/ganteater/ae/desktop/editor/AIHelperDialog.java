@@ -8,7 +8,7 @@ import java.awt.event.KeyEvent;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
-import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -25,8 +25,8 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.TextNode;
 import com.ganteater.ae.processor.BaseProcessor;
 import com.ganteater.ae.util.xml.easyparser.EasyParser;
 import com.ganteater.ae.util.xml.easyparser.Node;
@@ -52,6 +52,7 @@ public class AIHelperDialog extends HelperDialog {
 
 	private JTextArea editor = new JTextArea();
 	private String context;
+	private Collection<? extends String> adidtionalProcessors = new HashSet<>();
 
 	public AIHelperDialog(final CodeHelper codeHelper, final OpenAIClient client) {
 		super(codeHelper);
@@ -111,16 +112,7 @@ public class AIHelperDialog extends HelperDialog {
 
 			Prompt.Builder promptBuilder = new Prompt.Builder();
 
-			Set<String> processorClassList = new HashSet<>();
-			processorClassList.add(BaseProcessor.class.getName());
-			Node taskNode = new EasyParser().getObject(textEditor.getRecipePanel().getEditor().getText());
-			if (taskNode != null) {
-				Node[] nodes = taskNode.getNodes("Extern");
-				for (Node node : nodes) {
-					String processorClassName = node.getAttribute("class");
-					processorClassList.add(processorClassName);
-				}
-			}
+			Set<String> processorClassList = getProcessorNames(textEditor);
 
 			StringBuilder context = new StringBuilder(this.context);
 			AIHelper aiHelper = (AIHelper) getCodeHelper();
@@ -136,8 +128,8 @@ public class AIHelperDialog extends HelperDialog {
 				Builder builder = ResponseCreateParams.builder();
 				com.openai.models.responses.FunctionTool.Builder ft_builder = FunctionTool.builder();
 
-				ft_builder.name("getProcessorDescription")
-						.description("Is used for getting information about extern processor by name.");
+				ft_builder.name("getProcessorHelp")
+						.description("Get help documentation about anteater command Processor.");
 
 				ObjectMapper objectMapper = new ObjectMapper();
 
@@ -145,8 +137,8 @@ public class AIHelperDialog extends HelperDialog {
 					String value = "{\"processorName\": {\"type\": \"string\"}}";
 					Parameters ft_params = Parameters.builder()
 							.putAdditionalProperty("properties", JsonValue.fromJsonNode(objectMapper.readTree(value)))
-							.putAdditionalProperty("type", JsonString.of("object"))
-							.putAdditionalProperty("required", JsonValue.fromJsonNode(objectMapper.readTree("[]")))
+							.putAdditionalProperty("type", JsonString.of("object")).putAdditionalProperty("required",
+									JsonValue.fromJsonNode(objectMapper.readTree("[\"processorName\"]")))
 							.build();
 
 					ft_builder.parameters(ft_params);
@@ -158,7 +150,7 @@ public class AIHelperDialog extends HelperDialog {
 				FunctionTool functionTool = ft_builder.strict(false).build();
 				Tool function = Tool.ofFunction(functionTool);
 
-				ResponseCreateParams params = builder.temperature(0.5).addTool(function).input(p)
+				ResponseCreateParams params = builder.temperature(0.7).addTool(function).input(p)
 						.model(ChatModel.GPT_4_1).build();
 
 				Response response = responses.create(params);
@@ -166,41 +158,59 @@ public class AIHelperDialog extends HelperDialog {
 
 				ResponseOutputItem responseOutputItem = output.get(0);
 
-				System.out.println(responseOutputItem);
+				Optional<ResponseFunctionToolCall> functionCall = responseOutputItem.functionCall();
+				if (functionCall.isPresent()) {
+					try {
+						ResponseFunctionToolCall responseFunctionToolCall = functionCall.get();
+						Optional<String> id = responseFunctionToolCall.id();
+						String callId = responseFunctionToolCall.callId();
+						String name = responseFunctionToolCall.name();
 
-				ResponseOutputMessage message = responseOutputItem.message().get();
-				String responseText = message.content().get(0).outputText().get().text();
+						String arguments = responseFunctionToolCall.arguments();
+						JsonNode argumentsJson = objectMapper.readTree(arguments);
 
-				System.out.println(responseText);
+						System.out.println("Call Function Tool: " + name + ", arguments: " + argumentsJson);
 
-				getCodeHelper().hide();
-
-				String code = StringUtils.substringBetween(responseText, "```xml\n", "```");
-				if (code == null) {
-					code = responseText;
+					} catch (JsonProcessingException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
 				}
 
-				MarkerExtractResult mextract = Marker.extractAll(code);
-				int cursor = mextract.getPosition(Marker.CURSOR);
-				int start = mextract.getPosition(Marker.SELECTION_START);
-				int end = mextract.getPosition(Marker.SELECTION_END);
+				Optional<ResponseOutputMessage> messageOpt = responseOutputItem.message();
+				if (messageOpt.isPresent()) {
+					ResponseOutputMessage message = messageOpt.get();
+					String responseText = message.content().get(0).outputText().get().text();
 
-				textEditor.setText(mextract.getText());
-				if (StringUtils.isNotBlank(code)) {
-					textEditor.getRecipePanel().compileTask();
+					getCodeHelper().hide();
 
-					TaskEditor recipePanel = getCodeHelper().getEditor().getRecipePanel();
-					recipePanel.compileTask();
-					recipePanel.refreshTaskTree();
-					try {
-						textEditor.setCaretPosition(cursor < 0 ? caretPosition : cursor);
-						if (start > 0) {
-							textEditor.select(start, end);
-						}
-					} catch (IllegalArgumentException e1) {
-						textEditor.setCaretPosition(code.length());
+					String code = StringUtils.substringBetween(responseText, "```xml\n", "```");
+					if (code == null) {
+						code = responseText;
 					}
 
+					MarkerExtractResult mextract = Marker.extractAll(code);
+					int cursor = mextract.getPosition(Marker.CURSOR);
+					int start = mextract.getPosition(Marker.SELECTION_START);
+					int end = mextract.getPosition(Marker.SELECTION_END);
+
+					textEditor.setText(mextract.getText());
+					if (StringUtils.isNotBlank(code)) {
+						textEditor.getRecipePanel().compileTask();
+
+						TaskEditor recipePanel = getCodeHelper().getEditor().getRecipePanel();
+						recipePanel.compileTask();
+						recipePanel.refreshTaskTree();
+						try {
+							textEditor.setCaretPosition(cursor < 0 ? caretPosition : cursor);
+							if (start > 0) {
+								textEditor.select(start, end);
+							}
+						} catch (IllegalArgumentException e1) {
+							textEditor.setCaretPosition(code.length());
+						}
+
+					}
 				}
 			});
 
@@ -208,6 +218,23 @@ public class AIHelperDialog extends HelperDialog {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
 		}
+	}
+
+	private Set<String> getProcessorNames(TextEditor textEditor) {
+		Set<String> processorClassList = new HashSet<>();
+		processorClassList.add(BaseProcessor.class.getName());
+		Node taskNode = new EasyParser().getObject(textEditor.getRecipePanel().getEditor().getText());
+		if (taskNode != null) {
+			Node[] nodes = taskNode.getNodes("Extern");
+			for (Node node : nodes) {
+				String processorClassName = node.getAttribute("class");
+				processorClassList.add(processorClassName);
+			}
+		}
+
+		processorClassList.addAll(adidtionalProcessors);
+
+		return processorClassList;
 	}
 
 	public Object getProcessorDescription(Object processorName) {
