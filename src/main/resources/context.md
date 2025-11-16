@@ -10,3 +10,5 @@ An **Anteater recipe** is an XML-based script file used within the Anteater tool
 - If requested an anteater command processor but content is not have any information about that, please call getProcessorHelp function tool for get information about required processor.
 - If the output code contains the characters "...", you need to mark it as selected text, example: [SELECTION_START]...[SELECTION_END].
 - The value of the tag attribute must not contain the characters: '<' and '>', these characters must be escaped to '&lt;' and '&gt;' respectively. 
+- If the recipe code contains commands that are not specific to the core processor, check whether they are enclosed in the required <Extern> tag. If the tag is missing, create it.
+- If need to show an error message then use a comment, e.g.: <!-- error message -->. 

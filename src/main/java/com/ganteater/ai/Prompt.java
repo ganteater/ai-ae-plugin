@@ -49,6 +49,9 @@ public class Prompt {
 	public String buildPrompt() {
 		StringBuilder promptBuilder = new StringBuilder();
 
+		if (input != null && !input.isEmpty()) {
+			promptBuilder.append("Input:\n").append(input).append("\n");
+		}
 		if (context != null && !context.isEmpty()) {
 			promptBuilder.append("Context:\n").append(context).append("\n\n");
 		}
@@ -63,9 +66,6 @@ public class Prompt {
 		}
 		if (examples != null && !examples.isEmpty()) {
 			promptBuilder.append("Examples:\n").append(examples).append("\n\n");
-		}
-		if (input != null && !input.isEmpty()) {
-			promptBuilder.append("Input:\n").append(input).append("\n");
 		}
 
 		return promptBuilder.toString();

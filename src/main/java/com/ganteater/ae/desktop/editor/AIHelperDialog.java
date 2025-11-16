@@ -52,7 +52,9 @@ public class AIHelperDialog extends HelperDialog {
 
 	private JTextArea editor = new JTextArea();
 	private String context;
-	private Collection<? extends String> adidtionalProcessors = new HashSet<>();
+	private Collection<String> adidtionalProcessors = new HashSet<>();
+
+	private ObjectMapper objectMapper = new ObjectMapper();
 
 	public AIHelperDialog(final CodeHelper codeHelper, final OpenAIClient client) {
 		super(codeHelper);
@@ -99,125 +101,132 @@ public class AIHelperDialog extends HelperDialog {
 	}
 
 	protected void performRequest(OpenAIClient client) {
-		String text = editor.getText();
-
 		try {
-			TextEditor textEditor = getCodeHelper().getEditor();
+			Response response = request(client);
 
-			int caretPosition = textEditor.getCaretPosition();
-			int selectionStart = textEditor.getSelectionStart();
-			int selectionEnd = textEditor.getSelectionEnd();
+			List<ResponseOutputItem> output = response.output();
+			ResponseOutputItem responseOutputItem = output.get(0);
 
-			ResponseService responses = client.responses();
-
-			Prompt.Builder promptBuilder = new Prompt.Builder();
-
-			Set<String> processorClassList = getProcessorNames(textEditor);
-
-			StringBuilder context = new StringBuilder(this.context);
-			AIHelper aiHelper = (AIHelper) getCodeHelper();
-			String commands = aiHelper.getExampleContext(processorClassList);
-			context.append(commands);
-			context.append(aiHelper.getSystemVariablesContext());
-
-			promptBuilder.setContext(context.toString())
-					.setSource(textEditor.getText(), caretPosition, selectionStart, selectionEnd)
-					.setHint("response should have only recipe text without any additional texts.").setInput(text);
-
-			promptBuilder.build().apply(p -> {
-				Builder builder = ResponseCreateParams.builder();
-				com.openai.models.responses.FunctionTool.Builder ft_builder = FunctionTool.builder();
-
-				ft_builder.name("getProcessorHelp")
-						.description("Get help documentation about anteater command Processor.");
-
-				ObjectMapper objectMapper = new ObjectMapper();
-
+			Optional<ResponseFunctionToolCall> functionCall = responseOutputItem.functionCall();
+			if (functionCall.isPresent()) {
 				try {
-					String value = "{\"processorName\": {\"type\": \"string\"}}";
-					Parameters ft_params = Parameters.builder()
-							.putAdditionalProperty("properties", JsonValue.fromJsonNode(objectMapper.readTree(value)))
-							.putAdditionalProperty("type", JsonString.of("object")).putAdditionalProperty("required",
-									JsonValue.fromJsonNode(objectMapper.readTree("[\"processorName\"]")))
-							.build();
+					ResponseFunctionToolCall responseFunctionToolCall = functionCall.get();
+					Optional<String> id = responseFunctionToolCall.id();
+					String callId = responseFunctionToolCall.callId();
+					String name = responseFunctionToolCall.name();
 
-					ft_builder.parameters(ft_params);
+					String arguments = responseFunctionToolCall.arguments();
+					JsonNode argumentsJson = objectMapper.readTree(arguments);
+
+					System.out.println("Call Function Tool: " + name + ", arguments: " + argumentsJson);
+					adidtionalProcessors.add(argumentsJson.get("processorName").textValue());
+
+					response = request(client);
+					output = response.output();
+					responseOutputItem = output.get(0);
+
 				} catch (JsonProcessingException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
+			}
 
-				FunctionTool functionTool = ft_builder.strict(false).build();
-				Tool function = Tool.ofFunction(functionTool);
+			Optional<ResponseOutputMessage> messageOpt = responseOutputItem.message();
+			if (messageOpt.isPresent()) {
+				ResponseOutputMessage message = messageOpt.get();
+				String responseText = message.content().get(0).outputText().get().text();
 
-				ResponseCreateParams params = builder.temperature(0.7).addTool(function).input(p)
-						.model(ChatModel.GPT_4_1).build();
+				getCodeHelper().hide();
 
-				Response response = responses.create(params);
-				List<ResponseOutputItem> output = response.output();
+				String code = StringUtils.substringBetween(responseText, "```xml\n", "```");
+				if (code == null) {
+					code = responseText;
+				}
 
-				ResponseOutputItem responseOutputItem = output.get(0);
+				MarkerExtractResult mextract = Marker.extractAll(code);
+				int cursor = mextract.getPosition(Marker.CURSOR);
+				int start = mextract.getPosition(Marker.SELECTION_START);
+				int end = mextract.getPosition(Marker.SELECTION_END);
 
-				Optional<ResponseFunctionToolCall> functionCall = responseOutputItem.functionCall();
-				if (functionCall.isPresent()) {
+				TextEditor textEditor = getCodeHelper().getEditor();
+
+				textEditor.setText(mextract.getText());
+				if (StringUtils.isNotBlank(code)) {
+					textEditor.getRecipePanel().compileTask();
+
+					TaskEditor recipePanel = getCodeHelper().getEditor().getRecipePanel();
+					recipePanel.compileTask();
+					recipePanel.refreshTaskTree();
 					try {
-						ResponseFunctionToolCall responseFunctionToolCall = functionCall.get();
-						Optional<String> id = responseFunctionToolCall.id();
-						String callId = responseFunctionToolCall.callId();
-						String name = responseFunctionToolCall.name();
-
-						String arguments = responseFunctionToolCall.arguments();
-						JsonNode argumentsJson = objectMapper.readTree(arguments);
-
-						System.out.println("Call Function Tool: " + name + ", arguments: " + argumentsJson);
-
-					} catch (JsonProcessingException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
-				}
-
-				Optional<ResponseOutputMessage> messageOpt = responseOutputItem.message();
-				if (messageOpt.isPresent()) {
-					ResponseOutputMessage message = messageOpt.get();
-					String responseText = message.content().get(0).outputText().get().text();
-
-					getCodeHelper().hide();
-
-					String code = StringUtils.substringBetween(responseText, "```xml\n", "```");
-					if (code == null) {
-						code = responseText;
-					}
-
-					MarkerExtractResult mextract = Marker.extractAll(code);
-					int cursor = mextract.getPosition(Marker.CURSOR);
-					int start = mextract.getPosition(Marker.SELECTION_START);
-					int end = mextract.getPosition(Marker.SELECTION_END);
-
-					textEditor.setText(mextract.getText());
-					if (StringUtils.isNotBlank(code)) {
-						textEditor.getRecipePanel().compileTask();
-
-						TaskEditor recipePanel = getCodeHelper().getEditor().getRecipePanel();
-						recipePanel.compileTask();
-						recipePanel.refreshTaskTree();
-						try {
-							textEditor.setCaretPosition(cursor < 0 ? caretPosition : cursor);
-							if (start > 0) {
-								textEditor.select(start, end);
-							}
-						} catch (IllegalArgumentException e1) {
-							textEditor.setCaretPosition(code.length());
+						textEditor.setCaretPosition(cursor < 0 ? textEditor.getCaretPosition() : cursor);
+						if (start > 0) {
+							textEditor.select(start, end);
 						}
-
+					} catch (IllegalArgumentException e1) {
+						textEditor.setCaretPosition(code.length());
 					}
+
 				}
-			});
+			}
 
 		} catch (Exception e1) {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
 		}
+	}
+
+	private Response request(OpenAIClient client) {
+		TextEditor textEditor = getCodeHelper().getEditor();
+
+		int caretPosition = textEditor.getCaretPosition();
+		int selectionStart = textEditor.getSelectionStart();
+		int selectionEnd = textEditor.getSelectionEnd();
+		ResponseService responses = client.responses();
+
+		Prompt.Builder promptBuilder = new Prompt.Builder();
+
+		Set<String> processorClassList = getProcessorNames(textEditor);
+
+		StringBuilder context = new StringBuilder(this.context);
+		AIHelper aiHelper = (AIHelper) getCodeHelper();
+		String commands = aiHelper.getExampleContext(processorClassList);
+		context.append(commands);
+		context.append(aiHelper.getSystemVariablesContext());
+
+		promptBuilder.setContext(context.toString())
+				.setSource(textEditor.getText(), caretPosition, selectionStart, selectionEnd)
+				.setHint("response should have only recipe text without any additional texts.")
+				.setInput(this.editor.getText());
+
+		String prompt = promptBuilder.build().buildPrompt();
+
+		Builder builder = ResponseCreateParams.builder();
+		com.openai.models.responses.FunctionTool.Builder ft_builder = FunctionTool.builder();
+
+		ft_builder.name("getProcessorHelp").description("Get help documentation about anteater command Processor.");
+
+		try {
+			String value = "{\"processorName\": {\"type\": \"string\"}}";
+			Parameters ft_params = Parameters.builder()
+					.putAdditionalProperty("properties", JsonValue.fromJsonNode(objectMapper.readTree(value)))
+					.putAdditionalProperty("type", JsonString.of("object")).putAdditionalProperty("required",
+							JsonValue.fromJsonNode(objectMapper.readTree("[\"processorName\"]")))
+					.build();
+
+			ft_builder.parameters(ft_params);
+		} catch (JsonProcessingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+		FunctionTool functionTool = ft_builder.strict(false).build();
+		Tool function = Tool.ofFunction(functionTool);
+
+		ResponseCreateParams params = builder.temperature(0.7).addTool(function).input(prompt).model(ChatModel.GPT_4_1)
+				.build();
+
+		Response response = responses.create(params);
+		return response;
 	}
 
 	private Set<String> getProcessorNames(TextEditor textEditor) {

@@ -33,16 +33,15 @@ public class AIHelper extends CodeHelper {
 	public String getExampleContext(Set<String> processorClassNameList) {
 		StringBuilder examplesContext = new StringBuilder("# Commands\n");
 
-		for (String processorClassName : processorClassNameList) {
+		for (String processorName : processorClassNameList) {
 
-			processorClassName = Processor.getFullClassName(processorClassName);
+			String processorClassName = Processor.getFullClassName(processorName);
 			@SuppressWarnings("unchecked")
 			Class<BaseProcessor> processorClass;
 			try {
 				processorClass = (Class<BaseProcessor>) Class.forName(processorClassName);
 
-				String name = processorClass.getSimpleName();
-				examplesContext.append("## Command Processor: " + name + "\n");
+				examplesContext.append("## Command Processor: " + processorName + "\n");
 				examplesContext.append("Fully qualified class name: " + processorClass.getName() + "\n");
 
 				List<CommandInfo> commandList = super.getCommandList(null, processorClass);
@@ -64,8 +63,9 @@ public class AIHelper extends CodeHelper {
 					}
 				}
 			} catch (ClassNotFoundException e) {
-				examplesContext.append("## Command Processor: " + processorClassName + "\n");
-				examplesContext.append("Not found.\n");
+				examplesContext.append("## Command Processor: " + processorName + "\n");
+				examplesContext.append("This processor can not be used because the processor class: "
+						+ processorClassName + " not found. If user tray to use it, need to show the error.\n");
 			}
 		}
 
