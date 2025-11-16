@@ -8,8 +8,10 @@ import java.awt.event.KeyEvent;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import javax.swing.BorderFactory;
@@ -22,6 +24,9 @@ import org.apache.commons.lang.StringUtils;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.TextNode;
 import com.ganteater.ae.processor.BaseProcessor;
 import com.ganteater.ae.util.xml.easyparser.EasyParser;
 import com.ganteater.ae.util.xml.easyparser.Node;
@@ -29,12 +34,18 @@ import com.ganteater.ai.Marker;
 import com.ganteater.ai.MarkerExtractResult;
 import com.ganteater.ai.Prompt;
 import com.openai.client.OpenAIClient;
+import com.openai.core.JsonString;
+import com.openai.core.JsonValue;
 import com.openai.models.ChatModel;
+import com.openai.models.responses.FunctionTool;
+import com.openai.models.responses.FunctionTool.Parameters;
 import com.openai.models.responses.Response;
 import com.openai.models.responses.ResponseCreateParams;
 import com.openai.models.responses.ResponseCreateParams.Builder;
+import com.openai.models.responses.ResponseFunctionToolCall;
 import com.openai.models.responses.ResponseOutputItem;
 import com.openai.models.responses.ResponseOutputMessage;
+import com.openai.models.responses.Tool;
 import com.openai.services.blocking.ResponseService;
 
 public class AIHelperDialog extends HelperDialog {
@@ -103,10 +114,12 @@ public class AIHelperDialog extends HelperDialog {
 			Set<String> processorClassList = new HashSet<>();
 			processorClassList.add(BaseProcessor.class.getName());
 			Node taskNode = new EasyParser().getObject(textEditor.getRecipePanel().getEditor().getText());
-			Node[] nodes = taskNode.getNodes("Extern");
-			for (Node node : nodes) {
-				String processorClassName = node.getAttribute("class");
-				processorClassList.add(processorClassName);
+			if (taskNode != null) {
+				Node[] nodes = taskNode.getNodes("Extern");
+				for (Node node : nodes) {
+					String processorClassName = node.getAttribute("class");
+					processorClassList.add(processorClassName);
+				}
 			}
 
 			StringBuilder context = new StringBuilder(this.context);
@@ -121,11 +134,41 @@ public class AIHelperDialog extends HelperDialog {
 
 			promptBuilder.build().apply(p -> {
 				Builder builder = ResponseCreateParams.builder();
-				ResponseCreateParams params = builder.temperature(0.5).input(p).model(ChatModel.GPT_4_1).build();
+				com.openai.models.responses.FunctionTool.Builder ft_builder = FunctionTool.builder();
+
+				ft_builder.name("getProcessorDescription")
+						.description("Is used for getting information about extern processor by name.");
+
+				ObjectMapper objectMapper = new ObjectMapper();
+
+				try {
+					String value = "{\"processorName\": {\"type\": \"string\"}}";
+					Parameters ft_params = Parameters.builder()
+							.putAdditionalProperty("properties", JsonValue.fromJsonNode(objectMapper.readTree(value)))
+							.putAdditionalProperty("type", JsonString.of("object"))
+							.putAdditionalProperty("required", JsonValue.fromJsonNode(objectMapper.readTree("[]")))
+							.build();
+
+					ft_builder.parameters(ft_params);
+				} catch (JsonProcessingException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+
+				FunctionTool functionTool = ft_builder.strict(false).build();
+				Tool function = Tool.ofFunction(functionTool);
+
+				ResponseCreateParams params = builder.temperature(0.5).addTool(function).input(p)
+						.model(ChatModel.GPT_4_1).build();
 
 				Response response = responses.create(params);
 				List<ResponseOutputItem> output = response.output();
-				ResponseOutputMessage message = output.get(0).message().get();
+
+				ResponseOutputItem responseOutputItem = output.get(0);
+
+				System.out.println(responseOutputItem);
+
+				ResponseOutputMessage message = responseOutputItem.message().get();
 				String responseText = message.content().get(0).outputText().get().text();
 
 				System.out.println(responseText);
@@ -165,6 +208,10 @@ public class AIHelperDialog extends HelperDialog {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
 		}
+	}
+
+	public Object getProcessorDescription(Object processorName) {
+		return null;
 	}
 
 	public static String loadResource(String name) {
