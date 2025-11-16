@@ -48,15 +48,16 @@ public enum Marker {
 				.collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (oldValue, newValue) -> oldValue,
 						LinkedHashMap::new));
 
+		Map<Marker, Integer> result = new HashMap<Marker, Integer>();
 		Set<Entry<Marker, Integer>> entrySet = sortedMap.entrySet();
 		int correction = 0;
 		for (Entry<Marker, Integer> entry : entrySet) {
 			Integer value = entry.getValue();
 			if (value > 0) {
-				int pos = value + correction;
+				int pos = value - correction;
 				Marker key = entry.getKey();
-				correction = key.toString().length();
-				posMap.put(key, pos);
+				correction = correction + key.toString().length();
+				result.put(key, pos);
 			}
 		}
 
@@ -65,6 +66,6 @@ public enum Marker {
 			cleanedText = cleanedText.replace(marker.toString(), "");
 		}
 
-		return new MarkerExtractResult(cleanedText, posMap);
+		return new MarkerExtractResult(cleanedText, result);
 	}
 }
