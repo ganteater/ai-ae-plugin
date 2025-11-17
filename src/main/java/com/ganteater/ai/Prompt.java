@@ -49,14 +49,8 @@ public class Prompt {
 	public String buildPrompt() {
 		StringBuilder promptBuilder = new StringBuilder();
 
-		if (input != null && !input.isEmpty()) {
-			promptBuilder.append("Input:\n").append(input).append("\n");
-		}
 		if (context != null && !context.isEmpty()) {
 			promptBuilder.append("Context:\n").append(context).append("\n\n");
-		}
-		if (source != null && !source.isEmpty()) {
-			promptBuilder.append("Source:\n").append(source).append("\n\n");
 		}
 		if (instruction != null && !instruction.isEmpty()) {
 			promptBuilder.append("Instruction:\n").append(instruction).append("\n\n");
@@ -64,8 +58,14 @@ public class Prompt {
 		if (hint != null && !hint.isEmpty()) {
 			promptBuilder.append("Hint:\n").append(hint).append("\n\n");
 		}
+		if (source != null && !source.isEmpty()) {
+			promptBuilder.append("Source:\n").append(source).append("\n\n");
+		}
 		if (examples != null && !examples.isEmpty()) {
 			promptBuilder.append("Examples:\n").append(examples).append("\n\n");
+		}
+		if (input != null && !input.isEmpty()) {
+			promptBuilder.append("Input:\n").append(input).append("\n");
 		}
 
 		return promptBuilder.toString();
@@ -94,7 +94,7 @@ public class Prompt {
 			return markerInstraction.toString();
 		}
 
-		public Builder setContext(String context) {
+		public Builder context(String context) {
 			this.context = context;
 			return this;
 		}
@@ -109,7 +109,7 @@ public class Prompt {
 			return this;
 		}
 
-		public Builder setInput(String input) {
+		public Builder input(String input) {
 			this.input = input;
 			return this;
 		}
@@ -119,7 +119,7 @@ public class Prompt {
 			return this;
 		}
 
-		public Builder setSource(String source, int caretPosition, int selectionStart, int selectionEnd) {
+		public Builder source(String source, int caretPosition, int selectionStart, int selectionEnd) {
 			StringBuilder textWithCursor = new StringBuilder(source);
 			if (selectionStart == selectionEnd) {
 				selectionStart = -1;

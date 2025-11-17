@@ -7,27 +7,26 @@ import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URL;
-import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
 import javax.swing.BorderFactory;
+import javax.swing.JOptionPane;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.SwingUtilities;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ganteater.ae.desktop.ui.OptionPane;
 import com.ganteater.ae.processor.BaseProcessor;
+import com.ganteater.ae.processor.Processor;
 import com.ganteater.ae.util.xml.easyparser.EasyParser;
 import com.ganteater.ae.util.xml.easyparser.Node;
 import com.ganteater.ai.Marker;
@@ -36,6 +35,7 @@ import com.ganteater.ai.Prompt;
 import com.openai.client.OpenAIClient;
 import com.openai.core.JsonString;
 import com.openai.core.JsonValue;
+import com.openai.errors.RateLimitException;
 import com.openai.models.ChatModel;
 import com.openai.models.responses.FunctionTool;
 import com.openai.models.responses.FunctionTool.Parameters;
@@ -52,9 +52,6 @@ public class AIHelperDialog extends HelperDialog {
 
 	private JTextArea editor = new JTextArea();
 	private String context;
-	private Collection<String> adidtionalProcessors = new HashSet<>();
-
-	private ObjectMapper objectMapper = new ObjectMapper();
 
 	public AIHelperDialog(final CodeHelper codeHelper, final OpenAIClient client) {
 		super(codeHelper);
@@ -82,7 +79,9 @@ public class AIHelperDialog extends HelperDialog {
 					setVisible(false);
 					break;
 				case KeyEvent.VK_ENTER:
-					new Thread(() -> performRequest(client)).start();
+					TextEditor text = getCodeHelper().getEditor();
+					Set<String> processorClassList = getProcessorNames(text);
+					new Thread(() -> performRequest(client, processorClassList)).start();
 					setVisible(false);
 					break;
 				}
@@ -100,41 +99,43 @@ public class AIHelperDialog extends HelperDialog {
 
 	}
 
-	protected void performRequest(OpenAIClient client) {
+	protected void performRequest(OpenAIClient client, Set<String> processors) {
 		try {
-			Response response = request(client);
-
+			Response response = request(client, processors);
 			List<ResponseOutputItem> output = response.output();
 			ResponseOutputItem responseOutputItem = output.get(0);
 
 			Optional<ResponseFunctionToolCall> functionCall = responseOutputItem.functionCall();
 			if (functionCall.isPresent()) {
-				try {
-					ResponseFunctionToolCall responseFunctionToolCall = functionCall.get();
-					Optional<String> id = responseFunctionToolCall.id();
-					String callId = responseFunctionToolCall.callId();
-					String name = responseFunctionToolCall.name();
+				ResponseFunctionToolCall responseFunctionToolCall = functionCall.get();
+				String name = responseFunctionToolCall.name();
 
-					String arguments = responseFunctionToolCall.arguments();
-					JsonNode argumentsJson = objectMapper.readTree(arguments);
+				String arguments = responseFunctionToolCall.arguments();
 
-					System.out.println("Call Function Tool: " + name + ", arguments: " + argumentsJson);
-					adidtionalProcessors.add(argumentsJson.get("processorName").textValue());
+				ObjectMapper objectMapper = new ObjectMapper();
+				JsonNode argumentsJson;
+				argumentsJson = objectMapper.readTree(arguments);
 
-					response = request(client);
-					output = response.output();
-					responseOutputItem = output.get(0);
+				System.out.println("Call Function Tool: " + name + ", arguments: " + argumentsJson);
+				String processorName = argumentsJson.get("processorName").textValue();
 
-				} catch (JsonProcessingException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
+				String fullProcessorName = Processor.getFullClassName(processorName);
+
+				Set<String> processorClassNameList = new HashSet<>();
+				processorClassNameList.add(fullProcessorName);
+				processorClassNameList.add(BaseProcessor.class.getSimpleName());
+
+				response = request(client, processorClassNameList);
+				output = response.output();
+				responseOutputItem = output.get(0);
 			}
 
 			Optional<ResponseOutputMessage> messageOpt = responseOutputItem.message();
 			if (messageOpt.isPresent()) {
 				ResponseOutputMessage message = messageOpt.get();
 				String responseText = message.content().get(0).outputText().get().text();
+
+				System.out.println("Response size: " + responseText.length());
 
 				getCodeHelper().hide();
 
@@ -169,13 +170,15 @@ public class AIHelperDialog extends HelperDialog {
 				}
 			}
 
-		} catch (Exception e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
+		} catch (RateLimitException e) {
+			OptionPane.showMessageDialog(getCodeHelper().getRecipePanel().getFrame(), e.getLocalizedMessage(),
+					"Rate Limit", JOptionPane.ERROR_MESSAGE);
+		} catch (JsonProcessingException e) {
+			throw new IllegalArgumentException(e);
 		}
 	}
 
-	private Response request(OpenAIClient client) {
+	private Response request(OpenAIClient client, Set<String> processorClassList) {
 		TextEditor textEditor = getCodeHelper().getEditor();
 
 		int caretPosition = textEditor.getCaretPosition();
@@ -183,55 +186,64 @@ public class AIHelperDialog extends HelperDialog {
 		int selectionEnd = textEditor.getSelectionEnd();
 		ResponseService responses = client.responses();
 
-		Prompt.Builder promptBuilder = new Prompt.Builder();
-
-		Set<String> processorClassList = getProcessorNames(textEditor);
-
 		StringBuilder context = new StringBuilder(this.context);
-		AIHelper aiHelper = (AIHelper) getCodeHelper();
+		AIHelper aiHelper = getCodeHelper();
 		String commands = aiHelper.getExampleContext(processorClassList);
 		context.append(commands);
 		context.append(aiHelper.getSystemVariablesContext());
-
-		promptBuilder.setContext(context.toString())
-				.setSource(textEditor.getText(), caretPosition, selectionStart, selectionEnd)
-				.setHint("response should have only recipe text without any additional texts.")
-				.setInput(this.editor.getText());
-
-		String prompt = promptBuilder.build().buildPrompt();
 
 		Builder builder = ResponseCreateParams.builder();
 		com.openai.models.responses.FunctionTool.Builder ft_builder = FunctionTool.builder();
 
 		ft_builder.name("getProcessorHelp").description("Get help documentation about anteater command Processor.");
 
-		try {
-			String value = "{\"processorName\": {\"type\": \"string\"}}";
-			Parameters ft_params = Parameters.builder()
-					.putAdditionalProperty("properties", JsonValue.fromJsonNode(objectMapper.readTree(value)))
-					.putAdditionalProperty("type", JsonString.of("object")).putAdditionalProperty("required",
-							JsonValue.fromJsonNode(objectMapper.readTree("[\"processorName\"]")))
-					.build();
+		Parameters ft_params = Parameters.builder()
+				.putAdditionalProperty("properties", jsonValue("{'processorName': {'type': 'string'}}"))
+				.putAdditionalProperty("type", JsonString.of("object"))
+				.putAdditionalProperty("required", jsonValue("['processorName']"))
+				.build();
 
-			ft_builder.parameters(ft_params);
-		} catch (JsonProcessingException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		ft_builder.parameters(ft_params);
 
 		FunctionTool functionTool = ft_builder.strict(false).build();
 		Tool function = Tool.ofFunction(functionTool);
 
-		ResponseCreateParams params = builder.temperature(0.7).addTool(function).input(prompt).model(ChatModel.GPT_4_1)
+		Prompt.Builder promptBuilder = new Prompt.Builder()
+				.context(context.toString())
+				.source(textEditor.getText(), caretPosition, selectionStart, selectionEnd)
+				.input(this.editor.getText());
+
+		String input = promptBuilder.build().buildPrompt();
+		System.out.println("Prompt size: " + input.length());
+
+		String cacheKey = "cache_" + StringUtils.join(processorClassList, "_");
+		String chatModel = getCodeHelper().getChatModel();
+		ResponseCreateParams params = builder
+				.temperature(0.7)
+				.promptCacheKey(cacheKey)
+				.addTool(function)
+				.model(chatModel)
+				.input(input)
 				.build();
 
 		Response response = responses.create(params);
 		return response;
 	}
 
-	private Set<String> getProcessorNames(TextEditor textEditor) {
+	public static JsonValue jsonValue(String value) {
+		ObjectMapper objectMapper = new ObjectMapper();
+		JsonNode node;
+		try {
+			node = objectMapper.readTree(value.replace('\'', '\"'));
+			return JsonValue.fromJsonNode(node);
+		} catch (JsonProcessingException e) {
+			throw new IllegalArgumentException(e);
+		}
+	}
+
+	public Set<String> getProcessorNames(TextEditor textEditor) {
 		Set<String> processorClassList = new HashSet<>();
-		processorClassList.add(BaseProcessor.class.getName());
+		processorClassList.add(BaseProcessor.class.getSimpleName());
 		Node taskNode = new EasyParser().getObject(textEditor.getRecipePanel().getEditor().getText());
 		if (taskNode != null) {
 			Node[] nodes = taskNode.getNodes("Extern");
@@ -240,8 +252,6 @@ public class AIHelperDialog extends HelperDialog {
 				processorClassList.add(processorClassName);
 			}
 		}
-
-		processorClassList.addAll(adidtionalProcessors);
 
 		return processorClassList;
 	}
@@ -270,13 +280,9 @@ public class AIHelperDialog extends HelperDialog {
 		});
 	}
 
-	public static String extractTextFromHtml(String urlString) {
-		Document doc;
-		try {
-			doc = Jsoup.parse(new URL(urlString), 5000);
-			return doc.body().text();
-		} catch (IOException e) {
-			throw new IllegalArgumentException(e);
-		}
+	@Override
+	public AIHelper getCodeHelper() {
+		return (AIHelper) super.getCodeHelper();
 	}
+
 }
