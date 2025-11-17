@@ -24,6 +24,8 @@ import org.apache.commons.lang.StringUtils;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ganteater.ae.AELogRecord;
+import com.ganteater.ae.ILogger;
 import com.ganteater.ae.desktop.ui.OptionPane;
 import com.ganteater.ae.processor.BaseProcessor;
 import com.ganteater.ae.processor.Processor;
@@ -36,7 +38,6 @@ import com.openai.client.OpenAIClient;
 import com.openai.core.JsonString;
 import com.openai.core.JsonValue;
 import com.openai.errors.RateLimitException;
-import com.openai.models.ChatModel;
 import com.openai.models.responses.FunctionTool;
 import com.openai.models.responses.FunctionTool.Parameters;
 import com.openai.models.responses.Response;
@@ -45,6 +46,7 @@ import com.openai.models.responses.ResponseCreateParams.Builder;
 import com.openai.models.responses.ResponseFunctionToolCall;
 import com.openai.models.responses.ResponseOutputItem;
 import com.openai.models.responses.ResponseOutputMessage;
+import com.openai.models.responses.ResponseUsage;
 import com.openai.models.responses.Tool;
 import com.openai.services.blocking.ResponseService;
 
@@ -52,9 +54,13 @@ public class AIHelperDialog extends HelperDialog {
 
 	private JTextArea editor = new JTextArea();
 	private String context;
+	private double temperature = 0.7;
+
+	private ILogger log;
 
 	public AIHelperDialog(final CodeHelper codeHelper, final OpenAIClient client) {
 		super(codeHelper);
+
 		setAlwaysOnTop(true);
 		setUndecorated(true);
 
@@ -116,7 +122,7 @@ public class AIHelperDialog extends HelperDialog {
 				JsonNode argumentsJson;
 				argumentsJson = objectMapper.readTree(arguments);
 
-				System.out.println("Call Function Tool: " + name + ", arguments: " + argumentsJson);
+				getLog().debug("Call Function Tool: " + name + ", arguments: " + argumentsJson);
 				String processorName = argumentsJson.get("processorName").textValue();
 
 				String fullProcessorName = Processor.getFullClassName(processorName);
@@ -134,8 +140,7 @@ public class AIHelperDialog extends HelperDialog {
 			if (messageOpt.isPresent()) {
 				ResponseOutputMessage message = messageOpt.get();
 				String responseText = message.content().get(0).outputText().get().text();
-
-				System.out.println("Response size: " + responseText.length());
+				getLog().info(new AELogRecord(responseText, "xml", "Response"));
 
 				getCodeHelper().hide();
 
@@ -187,9 +192,13 @@ public class AIHelperDialog extends HelperDialog {
 		ResponseService responses = client.responses();
 
 		StringBuilder context = new StringBuilder(this.context);
+		context.append("\n\n");
+
 		AIHelper aiHelper = getCodeHelper();
 		String commands = aiHelper.getExampleContext(processorClassList);
-		context.append(commands);
+		context.append(commands.trim());
+		context.append("\n\n");
+
 		context.append(aiHelper.getSystemVariablesContext());
 
 		Builder builder = ResponseCreateParams.builder();
@@ -210,23 +219,32 @@ public class AIHelperDialog extends HelperDialog {
 
 		Prompt.Builder promptBuilder = new Prompt.Builder()
 				.context(context.toString())
-				.source(textEditor.getText(), caretPosition, selectionStart, selectionEnd)
+				.source("```xml\n" + textEditor.getText() + "\n```", caretPosition, selectionStart, selectionEnd)
 				.input(this.editor.getText());
 
 		String input = promptBuilder.build().buildPrompt();
-		System.out.println("Prompt size: " + input.length());
+		getLog().info(new AELogRecord(input, "md", "Input"));
 
-		String cacheKey = "cache_" + StringUtils.join(processorClassList, "_");
 		String chatModel = getCodeHelper().getChatModel();
 		ResponseCreateParams params = builder
-				.temperature(0.7)
-				.promptCacheKey(cacheKey)
+				.temperature(temperature)
 				.addTool(function)
 				.model(chatModel)
 				.input(input)
 				.build();
 
 		Response response = responses.create(params);
+
+		ResponseUsage responseUsage = response.usage().get();
+		long inputTokens = responseUsage.inputTokens();
+		long inputCachedTokens = responseUsage.inputTokensDetails().cachedTokens();
+		long outputTokens = responseUsage.outputTokens();
+		long reasoningTokens = responseUsage.outputTokensDetails().reasoningTokens();
+
+		getLog().debug(
+				String.format("Input: %1$d, cached: %2$d, output: %3$d, reasoning: %4$d tokens.",
+						inputTokens, inputCachedTokens, outputTokens, reasoningTokens));
+
 		return response;
 	}
 
@@ -260,14 +278,21 @@ public class AIHelperDialog extends HelperDialog {
 		return null;
 	}
 
-	public static String loadResource(String name) {
+	public String loadResource(String name) {
 		String result = null;
 		try (InputStream is = AIHelperDialog.class.getResourceAsStream(name)) {
 			result = IOUtils.toString(is);
 		} catch (IOException e) {
-			e.printStackTrace();
+			getLog().error("Resource: " + name + " not found.", e);
 		}
 		return result;
+	}
+
+	private ILogger getLog() {
+		if (log == null) {
+			log = getCodeHelper().getRecipePanel().createLog("Helper", true);
+		}
+		return log;
 	}
 
 	private static final long serialVersionUID = 1L;

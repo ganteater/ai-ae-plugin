@@ -50,22 +50,22 @@ public class Prompt {
 		StringBuilder promptBuilder = new StringBuilder();
 
 		if (context != null && !context.isEmpty()) {
-			promptBuilder.append("Context:\n").append(context).append("\n\n");
+			promptBuilder.append("# Context\n").append(context).append("\n\n");
 		}
 		if (instruction != null && !instruction.isEmpty()) {
-			promptBuilder.append("Instruction:\n").append(instruction).append("\n\n");
+			promptBuilder.append("# Instruction:\n").append(instruction).append("\n\n");
 		}
 		if (hint != null && !hint.isEmpty()) {
-			promptBuilder.append("Hint:\n").append(hint).append("\n\n");
+			promptBuilder.append("# Hint\n").append(hint).append("\n\n");
 		}
 		if (source != null && !source.isEmpty()) {
-			promptBuilder.append("Source:\n").append(source).append("\n\n");
+			promptBuilder.append("# Source\n").append(source).append("\n\n");
 		}
 		if (examples != null && !examples.isEmpty()) {
-			promptBuilder.append("Examples:\n").append(examples).append("\n\n");
+			promptBuilder.append("# Examples\n").append(examples).append("\n\n");
 		}
 		if (input != null && !input.isEmpty()) {
-			promptBuilder.append("Input:\n").append(input).append("\n");
+			promptBuilder.append("# Input\n").append(input).append("\n");
 		}
 
 		return promptBuilder.toString();

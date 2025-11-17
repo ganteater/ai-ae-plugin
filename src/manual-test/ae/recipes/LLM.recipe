@@ -5,7 +5,7 @@
 		</description> 
 	</About> 
 	<Extern class="LLM" apiKey="$var{OPENAI_API_KEY}">
-		<Prompt name="responseText" model="gpt-4">Write a short poem about the beauty of nature.</Prompt> 
+		<Prompt name="responseText" model="gpt-4o-mini">Write a short poem about the beauty of nature.</Prompt> 
 		<Out name="responseText" level="info" /> 
 	</Extern> 
 </Recipe> 
