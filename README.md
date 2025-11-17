@@ -2,9 +2,11 @@
 
 ![](src/site/resources/images/ai-ae-plugin.png)
 
-The **AI-AE-Plugin** is an Anteater plugin that introduces support for AI-powered workflows by integrating with Large Language Models (LLMs) like OpenAI GPT. This plugin enables users to use the `<Prompt>` command to generate content dynamically within Anteater recipes.
+The **AI-AE-Plugin** is an Anteater plugin that introduces support for AI-powered workflows by integrating with Large Language Models (LLMs) like OpenAI GPT. This plugin enables users to generate content dynamically within Anteater recipes and provides command processors.
 
 ## **Features**
+- **AI-Powered Content Generation**:
+		Use the `<Editor helper="AIHelper" apiKey="$var{OPENAI_API_KEY}"/>` configuration to interact with LLMs and generate recipe code.
 - **AI-Powered Content Generation**:
 		Use the `<Prompt>` command to interact with LLMs and generate text-based responses.
 - **Customizable Models**:
