@@ -1,6 +1,7 @@
 package com.ganteater.ae.desktop.editor;
 
 import java.awt.BorderLayout;
+import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -56,13 +57,15 @@ import com.openai.services.blocking.ResponseService;
 
 public class AIHelperDialog extends HelperDialog {
 
+	private static final String REQUEST_BUTTON_TEXT = "Perform";
+
 	private static final String GET_PROCESSOR_INFO = "getProcessorHelp";
 
 	private JTextArea editor = new JTextArea();
 	private String generalInfo;
 	private double temperature = 0.7;
 
-	private JButton perform = new JButton("Perform");
+	private JButton perform = new JButton(REQUEST_BUTTON_TEXT);
 
 	private ILogger log;
 
@@ -89,10 +92,18 @@ public class AIHelperDialog extends HelperDialog {
 		perform.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				TextEditor text = getCodeHelper().getEditor();
-				Set<String> processorClassList = getProcessorNames(text);
-				new Thread(() -> performRequest(client, processorClassList)).start();
-				setVisible(false);
+				new Thread(() -> {
+					try {
+						perform.setEnabled(false);
+						perform.setText("Waiting for the response ...");
+						performRequest(client);
+						setVisible(false);
+						
+					} finally {
+						perform.setText(REQUEST_BUTTON_TEXT);
+						perform.setEnabled(true);
+					}
+				}).start();
 			}
 		});
 
@@ -108,7 +119,8 @@ public class AIHelperDialog extends HelperDialog {
 		editor.addFocusListener(new FocusAdapter() {
 			@Override
 			public void focusLost(FocusEvent e) {
-				if (e.getOppositeComponent() != AIHelperDialog.this && e.getOppositeComponent() != editor) {
+				Component cmp = e.getOppositeComponent();
+				if (cmp != AIHelperDialog.this && cmp != editor && cmp != perform) {
 					setVisible(false);
 				}
 			}
@@ -116,9 +128,11 @@ public class AIHelperDialog extends HelperDialog {
 
 	}
 
-	protected void performRequest(OpenAIClient client, Set<String> processors) {
+	protected void performRequest(OpenAIClient client) {
 		try {
-			perform.setEnabled(false);
+			TextEditor text = getCodeHelper().getEditor();
+			Set<String> processors = getProcessorNames(text);
+
 			Response response = request(client, processors);
 			List<ResponseOutputItem> output = response.output();
 			ResponseOutputItem responseOutputItem = output.get(0);
@@ -134,7 +148,7 @@ public class AIHelperDialog extends HelperDialog {
 				JsonNode argumentsJson;
 				argumentsJson = objectMapper.readTree(arguments);
 
-				getLog().debug("Call Function Tool: " + name + ", arguments: " + argumentsJson);
+				debug("Call Function Tool: " + name + ", arguments: " + argumentsJson);
 				String processorName = argumentsJson.get("processorName").textValue();
 
 				String fullProcessorName = Processor.getFullClassName(processorName);
@@ -152,7 +166,6 @@ public class AIHelperDialog extends HelperDialog {
 			if (messageOpt.isPresent()) {
 				ResponseOutputMessage message = messageOpt.get();
 				String responseText = message.content().get(0).outputText().get().text();
-				getLog().info(new AELogRecord(responseText, "xml", "Response"));
 
 				getCodeHelper().hide();
 
@@ -192,8 +205,6 @@ public class AIHelperDialog extends HelperDialog {
 					"Rate Limit", JOptionPane.ERROR_MESSAGE);
 		} catch (JsonProcessingException e) {
 			throw new IllegalArgumentException(e);
-		} finally {
-			perform.setEnabled(true);
 		}
 	}
 
@@ -232,7 +243,7 @@ public class AIHelperDialog extends HelperDialog {
 				.input(editor.getText());
 
 		String input = promptBuilder.build().buildPrompt();
-		getLog().info(new AELogRecord(input, "md", "Input"));
+		debug(new AELogRecord(input, "md", "Prompt"));
 
 		String chatModel = getCodeHelper().getChatModel();
 		ResponseCreateParams params = builder
@@ -251,11 +262,17 @@ public class AIHelperDialog extends HelperDialog {
 		long outputTokens = responseUsage.outputTokens();
 		long reasoningTokens = responseUsage.outputTokensDetails().reasoningTokens();
 
-		getLog().debug(
-				String.format("Input: %1$d, cached: %2$d, output: %3$d, reasoning: %4$d tokens.",
-						inputTokens, inputCachedTokens, outputTokens, reasoningTokens));
+		debug(String.format("Input: %1$d, cached: %2$d, output: %3$d, reasoning: %4$d tokens.",
+				inputTokens, inputCachedTokens, outputTokens, reasoningTokens));
 
 		return response;
+	}
+
+	private void debug(Object message) {
+		if (getCodeHelper().isDebug()) {
+			getLog().debug(message);
+		}
+
 	}
 
 	public static JsonValue jsonValue(String value) {
@@ -299,6 +316,7 @@ public class AIHelperDialog extends HelperDialog {
 	}
 
 	private ILogger getLog() {
+		log = getCodeHelper().getEditor().getRecipePanel().getLogger();
 		if (log == null) {
 			log = getCodeHelper().getRecipePanel().createLog("Helper", true);
 		}

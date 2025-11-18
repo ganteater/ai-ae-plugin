@@ -1,11 +1,16 @@
 <Recipe name="LLM">
 	<About>
 		<description>
-			This recipe demonstrates the usage of the LLM processor to interact with an AI language model.
-			It initializes the LLM processor with an API key and sends a prompt to generate a short poem about the beauty of nature.
-			The generated poem is stored in a property named 'responseText' and then output to the log with info level.
-			This example showcases how Anteater can be used to integrate AI-powered text generation within interactive command workflows.
+			This recipe demonstrates the usage of the LLM processor to interact with an AI language model. 
+			It sends a prompt requesting a short poem about the beauty of nature, retrieves the response, and logs it. 
+			The LLM processor requires an API key for authentication, which is passed securely using a system variable. 
+			This example showcases how Anteater can integrate conversational AI capabilities into automated workflows, 
+			enabling dynamic content generation or intelligent assistance within test and control scenarios.
 		</description> 
+		<author name="OpenAI GPT" email="support@openai.com" messager="ChatGPT" phone="+1-800-000-0000" /> 
+		<attach>
+			<file name="LLM_Usage_Guide.pdf" width="800" height="600" /> 
+		</attach> 
 	</About> 
 	<Extern class="LLM" apiKey="$var{OPENAI_API_KEY}">
 		<Prompt name="responseText" model="gpt-4o-mini">Write a short poem about the beauty of nature.</Prompt> 

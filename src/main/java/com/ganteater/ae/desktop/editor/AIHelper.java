@@ -18,6 +18,7 @@ import com.openai.client.okhttp.OpenAIOkHttpClient;
 public class AIHelper extends CodeHelper {
 
 	private String chatModel;
+	private boolean debug;
 
 	public AIHelper(TextEditor textEditor) throws IOException, IllegalAccessException {
 		super(textEditor);
@@ -28,6 +29,8 @@ public class AIHelper extends CodeHelper {
 		Node editorNode = recipeEditor.getEditor().getEditorNode();
 
 		chatModel = StringUtils.defaultIfEmpty(taskProcessor.attr(editorNode, "model"), "gpt-4.1-mini");
+
+		debug = Boolean.parseBoolean(taskProcessor.attr(editorNode, "false"));
 
 		String apiKey = taskProcessor.attr(editorNode, "apiKey");
 		if (apiKey == null) {
@@ -122,6 +125,10 @@ public class AIHelper extends CodeHelper {
 
 	public String getChatModel() {
 		return chatModel;
+	}
+
+	public boolean isDebug() {
+		return debug;
 	}
 
 }
