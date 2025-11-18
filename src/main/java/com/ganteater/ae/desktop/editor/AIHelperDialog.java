@@ -1,6 +1,9 @@
 package com.ganteater.ae.desktop.editor;
 
+import java.awt.BorderLayout;
 import java.awt.Dimension;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
 import java.awt.event.KeyAdapter;
@@ -13,6 +16,7 @@ import java.util.Optional;
 import java.util.Set;
 
 import javax.swing.BorderFactory;
+import javax.swing.JButton;
 import javax.swing.JOptionPane;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
@@ -52,9 +56,13 @@ import com.openai.services.blocking.ResponseService;
 
 public class AIHelperDialog extends HelperDialog {
 
+	private static final String GET_PROCESSOR_INFO = "getProcessorHelp";
+
 	private JTextArea editor = new JTextArea();
-	private String context;
+	private String generalInfo;
 	private double temperature = 0.7;
+
+	private JButton perform = new JButton("Perform");
 
 	private ILogger log;
 
@@ -71,25 +79,28 @@ public class AIHelperDialog extends HelperDialog {
 		JScrollPane comp = new JScrollPane(editor);
 		comp.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
 		comp.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
-		comp.setPreferredSize(new Dimension(300, 200));
+		comp.setPreferredSize(new Dimension(300, 150));
 
-		this.context = loadResource("/context.md");
+		this.generalInfo = loadResource("/generalInfo.md");
 
-		getContentPane().add(comp);
+		getContentPane().add(comp, BorderLayout.CENTER);
+		getContentPane().add(perform, BorderLayout.SOUTH);
+
+		perform.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				TextEditor text = getCodeHelper().getEditor();
+				Set<String> processorClassList = getProcessorNames(text);
+				new Thread(() -> performRequest(client, processorClassList)).start();
+				setVisible(false);
+			}
+		});
 
 		editor.addKeyListener(new KeyAdapter() {
 			@Override
 			public void keyPressed(KeyEvent e) {
-				switch (e.getKeyCode()) {
-				case KeyEvent.VK_ESCAPE:
+				if (e.getKeyCode() == KeyEvent.VK_ESCAPE) {
 					setVisible(false);
-					break;
-				case KeyEvent.VK_ENTER:
-					TextEditor text = getCodeHelper().getEditor();
-					Set<String> processorClassList = getProcessorNames(text);
-					new Thread(() -> performRequest(client, processorClassList)).start();
-					setVisible(false);
-					break;
 				}
 			}
 		});
@@ -107,6 +118,7 @@ public class AIHelperDialog extends HelperDialog {
 
 	protected void performRequest(OpenAIClient client, Set<String> processors) {
 		try {
+			perform.setEnabled(false);
 			Response response = request(client, processors);
 			List<ResponseOutputItem> output = response.output();
 			ResponseOutputItem responseOutputItem = output.get(0);
@@ -180,6 +192,8 @@ public class AIHelperDialog extends HelperDialog {
 					"Rate Limit", JOptionPane.ERROR_MESSAGE);
 		} catch (JsonProcessingException e) {
 			throw new IllegalArgumentException(e);
+		} finally {
+			perform.setEnabled(true);
 		}
 	}
 
@@ -189,22 +203,19 @@ public class AIHelperDialog extends HelperDialog {
 		int caretPosition = textEditor.getCaretPosition();
 		int selectionStart = textEditor.getSelectionStart();
 		int selectionEnd = textEditor.getSelectionEnd();
-		ResponseService responses = client.responses();
+		String text = textEditor.getText();
 
-		StringBuilder context = new StringBuilder(this.context);
-		context.append("\n\n");
+		Prompt.Builder promptBuilder = new Prompt.Builder();
+		promptBuilder.context(generalInfo);
 
 		AIHelper aiHelper = getCodeHelper();
-		String commands = aiHelper.getExampleContext(processorClassList);
-		context.append(commands.trim());
-		context.append("\n\n");
-
-		context.append(aiHelper.getSystemVariablesContext());
+		aiHelper.appendExampleContext(promptBuilder, processorClassList);
+		aiHelper.appendSystemVariablesContext(promptBuilder);
 
 		Builder builder = ResponseCreateParams.builder();
 		com.openai.models.responses.FunctionTool.Builder ft_builder = FunctionTool.builder();
 
-		ft_builder.name("getProcessorHelp").description("Get help documentation about anteater command Processor.");
+		ft_builder.name(GET_PROCESSOR_INFO).description("Get help documentation about anteater command Processor.");
 
 		Parameters ft_params = Parameters.builder()
 				.putAdditionalProperty("properties", jsonValue("{'processorName': {'type': 'string'}}"))
@@ -217,10 +228,8 @@ public class AIHelperDialog extends HelperDialog {
 		FunctionTool functionTool = ft_builder.strict(false).build();
 		Tool function = Tool.ofFunction(functionTool);
 
-		Prompt.Builder promptBuilder = new Prompt.Builder()
-				.context(context.toString())
-				.source("```xml\n" + textEditor.getText() + "\n```", caretPosition, selectionStart, selectionEnd)
-				.input(this.editor.getText());
+		promptBuilder.source(text, "xml", caretPosition, selectionStart, selectionEnd)
+				.input(editor.getText());
 
 		String input = promptBuilder.build().buildPrompt();
 		getLog().info(new AELogRecord(input, "md", "Input"));
@@ -233,6 +242,7 @@ public class AIHelperDialog extends HelperDialog {
 				.input(input)
 				.build();
 
+		ResponseService responses = client.responses();
 		Response response = responses.create(params);
 
 		ResponseUsage responseUsage = response.usage().get();

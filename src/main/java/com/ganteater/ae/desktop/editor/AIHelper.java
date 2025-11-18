@@ -11,6 +11,7 @@ import com.ganteater.ae.processor.BaseProcessor;
 import com.ganteater.ae.processor.Processor;
 import com.ganteater.ae.processor.annotation.CommandInfo;
 import com.ganteater.ae.util.xml.easyparser.Node;
+import com.ganteater.ai.Prompt.Builder;
 import com.openai.client.OpenAIClient;
 import com.openai.client.okhttp.OpenAIOkHttpClient;
 
@@ -39,55 +40,52 @@ public class AIHelper extends CodeHelper {
 		super.setDefaultDialog(aiHelperDialog);
 	}
 
-	public String getExampleContext(Set<String> processorClassNameList) {
-		StringBuilder examplesContext = new StringBuilder("# Commands\n\n");
+	public void appendExampleContext(Builder contextBuilder, Set<String> processorClassNameList) {
+		contextBuilder.context("# Commands");
 
 		for (String processorName : processorClassNameList) {
 			String processorClassName = Processor.getFullClassName(processorName);
 
-			StringBuilder context = new StringBuilder("## Command Processor: " + processorName + "\n\n");
+			contextBuilder.context("## Command Processor: " + processorName);
 			try {
 				@SuppressWarnings("unchecked")
 				Class<BaseProcessor> processorClass = (Class<BaseProcessor>) Class.forName(processorClassName);
-				context.append("Fully qualified class name: " + processorClass.getName() + "\n\n");
+				contextBuilder.context("Fully qualified class name: " + processorClass.getName());
 
 				List<CommandInfo> commandList = super.getCommandList(null, processorClass);
 
 				for (CommandInfo cominfo : commandList) {
 					if (!cominfo.getName().equals("init")) {
-						context.append("### Command `" + cominfo.getName() + "`\n\n");
+						contextBuilder.context("### Command `" + cominfo.getName() + "`");
 					} else {
-						context.append("### Processor Initialization\n\n");
+						contextBuilder.context("### Processor Initialization");
 					}
 					String description = cominfo.getDescription();
 					if (StringUtils.isNotEmpty(description)) {
-						context.append("Description: " + description + "\n\n");
+						contextBuilder.context("Description: " + description);
 					}
-					fillExampes(context, cominfo);
+					fillExampes(contextBuilder, cominfo);
 				}
 			} catch (ClassNotFoundException e) {
-				context.append("## Command Processor: " + processorName + "\n\n");
-				context.append("This processor can not be used because the processor class: " + processorClassName
-						+ " not found. If user tray to use it, need to show the error.\n");
+				contextBuilder.context("## Command Processor: " + processorName);
+				contextBuilder
+						.context("This processor can not be used because the processor class: " + processorClassName
+								+ " not found. If user tray to use it, need to show the error.");
 			}
-			context.append("\n");
-			examplesContext.append(context);
 		}
-
-		return examplesContext.toString();
-
 	}
 
-	private void fillExampes(StringBuilder context, CommandInfo cominfo) {
+	private void fillExampes(Builder contextBuilder, CommandInfo cominfo) {
 		List<String> examples = cominfo.getExamples();
 		if (!examples.isEmpty()) {
-			context.append("#### Examples\n\n");
+			contextBuilder.context("#### Examples");
 			int i = 1;
+			StringBuilder examplesInfo = new StringBuilder();
 			for (String example : examples) {
-				appendExample(context, i++, example);
+				appendExample(examplesInfo, i++, example);
 			}
+			contextBuilder.context(examplesInfo.toString());
 		}
-		context.append("\n");
 	}
 
 	private void appendExample(StringBuilder context, int i, String example) {
@@ -109,17 +107,17 @@ public class AIHelper extends CodeHelper {
 		}
 	}
 
-	public String getSystemVariablesContext() {
+	public void appendSystemVariablesContext(Builder promptBuilder) {
 		Map<String, Object> startVariables = getRecipePanel().getManager().getSystemVariables();
-		StringBuilder examplesContext = new StringBuilder("# System Variable Names\n\n");
+		promptBuilder.context("# System Variable Names");
 
 		Set<String> keySet = startVariables.keySet();
 		int i = 1;
+		StringBuilder sysvarInfo = new StringBuilder();
 		for (String name : keySet) {
-			examplesContext.append((i++) + ". " + name + "\n");
+			sysvarInfo.append((i++) + ". " + name + "\n");
 		}
-		examplesContext.append("\n");
-		return examplesContext.toString();
+		promptBuilder.context(sysvarInfo.toString());
 	}
 
 	public String getChatModel() {

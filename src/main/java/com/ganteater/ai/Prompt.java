@@ -3,21 +3,26 @@ package com.ganteater.ai;
 import java.util.function.Consumer;
 
 public class Prompt {
+
+	public static final String PARAGRAPH = "\n\n";
+
 	private final String context;
 	private final String instruction;
 	private final String examples;
 	private final String input;
 	private String hint;
 	private String source;
+	private String sourceType;
 
 	// Private constructor to enforce usage of the Builder
 	private Prompt(Builder builder) {
-		this.context = builder.context;
+		this.context = builder.context.toString();
 		this.instruction = builder.instruction;
 		this.examples = builder.examples;
 		this.input = builder.input;
 		this.hint = builder.hint;
 		this.source = builder.source;
+		this.sourceType = builder.sourceType;
 	}
 
 	// Getters
@@ -50,19 +55,19 @@ public class Prompt {
 		StringBuilder promptBuilder = new StringBuilder();
 
 		if (context != null && !context.isEmpty()) {
-			promptBuilder.append("# Context\n").append(context).append("\n\n");
+			promptBuilder.append("# Context\n").append(context).append(PARAGRAPH);
 		}
 		if (instruction != null && !instruction.isEmpty()) {
-			promptBuilder.append("# Instruction:\n").append(instruction).append("\n\n");
+			promptBuilder.append("# Instruction:\n").append(instruction).append(PARAGRAPH);
 		}
 		if (hint != null && !hint.isEmpty()) {
-			promptBuilder.append("# Hint\n").append(hint).append("\n\n");
+			promptBuilder.append("# Hint\n").append(hint).append(PARAGRAPH);
 		}
 		if (source != null && !source.isEmpty()) {
-			promptBuilder.append("# Source\n").append(source).append("\n\n");
+			promptBuilder.append("# Source\n").append("```" + sourceType + "\n" + source + "\n```").append(PARAGRAPH);
 		}
 		if (examples != null && !examples.isEmpty()) {
-			promptBuilder.append("# Examples\n").append(examples).append("\n\n");
+			promptBuilder.append("# Examples\n").append(examples).append(PARAGRAPH);
 		}
 		if (input != null && !input.isEmpty()) {
 			promptBuilder.append("# Input\n").append(input).append("\n");
@@ -73,19 +78,20 @@ public class Prompt {
 
 	// Builder Class
 	public static class Builder {
-		private String context;
+		private StringBuilder context = new StringBuilder();
 		private String instruction = markerInstraction();
 		private String examples;
 		private String input;
 		private String hint;
 		private String source;
+		private String sourceType = "";
 
 		public Builder() {
 		}
 
 		private String markerInstraction() {
 			StringBuilder markerInstraction = new StringBuilder(
-					"In the source can be used following special markers:\n");
+					"In the source can be used following special markers:" + PARAGRAPH);
 			Marker[] values = Marker.values();
 			for (int i = 0; i < values.length; i++) {
 				markerInstraction.append(i + ". " + values[i].toString() + " - " + values[i].getDescription() + "\n");
@@ -95,7 +101,8 @@ public class Prompt {
 		}
 
 		public Builder context(String context) {
-			this.context = context;
+			this.context.append(context);
+			this.context.append(Prompt.PARAGRAPH);
 			return this;
 		}
 
@@ -119,7 +126,9 @@ public class Prompt {
 			return this;
 		}
 
-		public Builder source(String source, int caretPosition, int selectionStart, int selectionEnd) {
+		public Builder source(String source, String type, int caretPosition, int selectionStart, int selectionEnd) {
+			sourceType = type;
+
 			StringBuilder textWithCursor = new StringBuilder(source);
 			if (selectionStart == selectionEnd) {
 				selectionStart = -1;

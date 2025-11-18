@@ -1,7 +1,10 @@
 <Recipe name="LLM">
 	<About>
 		<description>
-			This recipe demonstrates the use of the LLM processor to generate a short poem about the beauty of nature using the GPT-4 model. It requires an OpenAI API key for access.
+			This recipe demonstrates the usage of the LLM processor to interact with an AI language model.
+			It initializes the LLM processor with an API key and sends a prompt to generate a short poem about the beauty of nature.
+			The generated poem is stored in a property named 'responseText' and then output to the log with info level.
+			This example showcases how Anteater can be used to integrate AI-powered text generation within interactive command workflows.
 		</description> 
 	</About> 
 	<Extern class="LLM" apiKey="$var{OPENAI_API_KEY}">
