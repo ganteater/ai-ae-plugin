@@ -1,6 +1,7 @@
 package com.ganteater.ae.desktop.editor;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -28,9 +29,9 @@ public class AIHelper extends CodeHelper {
 
 		Node editorNode = recipeEditor.getEditor().getEditorNode();
 
-		chatModel = StringUtils.defaultIfEmpty(taskProcessor.attr(editorNode, "model"), "gpt-4.1-mini");
+		chatModel = StringUtils.defaultIfEmpty(taskProcessor.attr(editorNode, "model"), "gpt-5-mini");
 
-		debug = Boolean.parseBoolean(taskProcessor.attr(editorNode, "false"));
+		debug = Boolean.parseBoolean(taskProcessor.attr(editorNode, "debug", "false"));
 
 		String apiKey = taskProcessor.attr(editorNode, "apiKey");
 		if (apiKey == null) {
@@ -43,7 +44,7 @@ public class AIHelper extends CodeHelper {
 		super.setDefaultDialog(aiHelperDialog);
 	}
 
-	public void appendExampleContext(Builder contextBuilder, Set<String> processorClassNameList) {
+	public void appendExampleContext(Builder contextBuilder, Collection<String> processorClassNameList) {
 		contextBuilder.context("# Commands");
 
 		for (String processorName : processorClassNameList) {
@@ -101,7 +102,7 @@ public class AIHelper extends CodeHelper {
 			description = StringUtils.substring(example, 0, colonIndex + 1);
 		}
 
-		example = example.replace("'", "\"");
+		code = code.replace("'", "\"");
 		if (StringUtils.contains(example, "\n")) {
 			context.append(description + "\n"
 					+ "```xml\n" + code + "\n```\n");

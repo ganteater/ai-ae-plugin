@@ -4,7 +4,7 @@
 
 	<Configuration name="AI Agent">
 		<Var name="OPENAI_API_KEY" init="console" type="password" />
-		<Editor helper="AIHelper" apiKey="$var{OPENAI_API_KEY}"/>
+		<Editor helper="AIHelper" apiKey="$var{OPENAI_API_KEY}" debug="true"/>
 	</Configuration>
 
 </Environment>

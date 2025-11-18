@@ -11,6 +11,8 @@ import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -33,7 +35,6 @@ import com.ganteater.ae.AELogRecord;
 import com.ganteater.ae.ILogger;
 import com.ganteater.ae.desktop.ui.OptionPane;
 import com.ganteater.ae.processor.BaseProcessor;
-import com.ganteater.ae.processor.Processor;
 import com.ganteater.ae.util.xml.easyparser.EasyParser;
 import com.ganteater.ae.util.xml.easyparser.Node;
 import com.ganteater.ai.Marker;
@@ -63,7 +64,7 @@ public class AIHelperDialog extends HelperDialog {
 
 	private JTextArea editor = new JTextArea();
 	private String generalInfo;
-	private double temperature = 0.7;
+	private Double temperature;
 
 	private JButton perform = new JButton(REQUEST_BUTTON_TEXT);
 
@@ -98,7 +99,7 @@ public class AIHelperDialog extends HelperDialog {
 						perform.setText("Waiting for the response ...");
 						performRequest(client);
 						setVisible(false);
-						
+
 					} finally {
 						perform.setText(REQUEST_BUTTON_TEXT);
 						perform.setEnabled(true);
@@ -131,72 +132,72 @@ public class AIHelperDialog extends HelperDialog {
 	protected void performRequest(OpenAIClient client) {
 		try {
 			TextEditor text = getCodeHelper().getEditor();
-			Set<String> processors = getProcessorNames(text);
+			Collection<String> processors = getProcessorNames(text);
 
 			Response response = request(client, processors);
 			List<ResponseOutputItem> output = response.output();
-			ResponseOutputItem responseOutputItem = output.get(0);
 
-			Optional<ResponseFunctionToolCall> functionCall = responseOutputItem.functionCall();
-			if (functionCall.isPresent()) {
-				ResponseFunctionToolCall responseFunctionToolCall = functionCall.get();
-				String name = responseFunctionToolCall.name();
+			for (ResponseOutputItem responseOutputItem : output) {
+				Optional<ResponseFunctionToolCall> functionCall = responseOutputItem.functionCall();
+				if (functionCall.isPresent()) {
+					ResponseFunctionToolCall responseFunctionToolCall = functionCall.get();
+					String name = responseFunctionToolCall.name();
 
-				String arguments = responseFunctionToolCall.arguments();
+					String arguments = responseFunctionToolCall.arguments();
 
-				ObjectMapper objectMapper = new ObjectMapper();
-				JsonNode argumentsJson;
-				argumentsJson = objectMapper.readTree(arguments);
+					ObjectMapper objectMapper = new ObjectMapper();
+					JsonNode argumentsJson;
+					argumentsJson = objectMapper.readTree(arguments);
 
-				debug("Call Function Tool: " + name + ", arguments: " + argumentsJson);
-				String processorName = argumentsJson.get("processorName").textValue();
+					debug("Call Function Tool: " + name + ", arguments: " + argumentsJson);
+					String processorName = argumentsJson.get("processorName").textValue();
 
-				String fullProcessorName = Processor.getFullClassName(processorName);
+					List<String> processorClassNames = new ArrayList<>();
+					processorClassNames.add(BaseProcessor.class.getSimpleName());
+					processorClassNames.add(processorName);
 
-				Set<String> processorClassNameList = new HashSet<>();
-				processorClassNameList.add(fullProcessorName);
-				processorClassNameList.add(BaseProcessor.class.getSimpleName());
-
-				response = request(client, processorClassNameList);
-				output = response.output();
-				responseOutputItem = output.get(0);
-			}
-
-			Optional<ResponseOutputMessage> messageOpt = responseOutputItem.message();
-			if (messageOpt.isPresent()) {
-				ResponseOutputMessage message = messageOpt.get();
-				String responseText = message.content().get(0).outputText().get().text();
-
-				getCodeHelper().hide();
-
-				String code = StringUtils.substringBetween(responseText, "```xml\n", "```");
-				if (code == null) {
-					code = responseText;
+					response = request(client, processorClassNames);
+					output = response.output();
 				}
 
-				MarkerExtractResult mextract = Marker.extractAll(code);
-				int cursor = mextract.getPosition(Marker.CURSOR);
-				int start = mextract.getPosition(Marker.SELECTION_START);
-				int end = mextract.getPosition(Marker.SELECTION_END);
+				Optional<ResponseOutputMessage> messageOpt = getMessage(output);
+				if (messageOpt.isPresent()) {
+					ResponseOutputMessage message = messageOpt.get();
+					String responseText = message.content().get(0).outputText().get().text();
+					debug(new AELogRecord(responseText, "xml", "Output"));
+					getCodeHelper().hide();
 
-				TextEditor textEditor = getCodeHelper().getEditor();
-
-				textEditor.setText(mextract.getText());
-				if (StringUtils.isNotBlank(code)) {
-					textEditor.getRecipePanel().compileTask();
-
-					TaskEditor recipePanel = getCodeHelper().getEditor().getRecipePanel();
-					recipePanel.compileTask();
-					recipePanel.refreshTaskTree();
-					try {
-						textEditor.setCaretPosition(cursor < 0 ? textEditor.getCaretPosition() : cursor);
-						if (start > 0) {
-							textEditor.select(start, end);
-						}
-					} catch (IllegalArgumentException e1) {
-						textEditor.setCaretPosition(code.length());
+					String code = StringUtils.substringBetween(responseText, "```xml\n", "```");
+					if (code == null) {
+						code = responseText;
 					}
 
+					MarkerExtractResult mextract = Marker.extractAll(code);
+					int cursor = mextract.getPosition(Marker.CURSOR);
+					int start = mextract.getPosition(Marker.SELECTION_START);
+					int end = mextract.getPosition(Marker.SELECTION_END);
+
+					TextEditor textEditor = getCodeHelper().getEditor();
+
+					textEditor.setText(mextract.getText());
+					if (StringUtils.isNotBlank(code)) {
+						textEditor.getRecipePanel().compileTask();
+
+						TaskEditor recipePanel = getCodeHelper().getEditor().getRecipePanel();
+						recipePanel.compileTask();
+						recipePanel.refreshTaskTree();
+						try {
+							textEditor.setCaretPosition(cursor < 0 ? textEditor.getCaretPosition() : cursor);
+							if (start > 0) {
+								textEditor.select(start, end);
+							}
+						} catch (IllegalArgumentException e1) {
+							textEditor.setCaretPosition(code.length());
+						}
+
+					}
+
+					break;
 				}
 			}
 
@@ -208,7 +209,11 @@ public class AIHelperDialog extends HelperDialog {
 		}
 	}
 
-	private Response request(OpenAIClient client, Set<String> processorClassList) {
+	private Optional<ResponseOutputMessage> getMessage(List<ResponseOutputItem> output) {
+		return output.get(output.size() - 1).message();
+	}
+
+	private Response request(OpenAIClient client, Collection<String> processorClassList) {
 		TextEditor textEditor = getCodeHelper().getEditor();
 
 		int caretPosition = textEditor.getCaretPosition();
@@ -243,12 +248,15 @@ public class AIHelperDialog extends HelperDialog {
 				.input(editor.getText());
 
 		String input = promptBuilder.build().buildPrompt();
-		debug(new AELogRecord(input, "md", "Prompt"));
+		debug(new AELogRecord(input, "md", "Input"));
 
 		String chatModel = getCodeHelper().getChatModel();
-		ResponseCreateParams params = builder
-				.temperature(temperature)
-				.addTool(function)
+
+		if (temperature != null) {
+			builder.temperature(temperature);
+		}
+
+		ResponseCreateParams params = builder.addTool(function)
 				.model(chatModel)
 				.input(input)
 				.build();
@@ -272,7 +280,6 @@ public class AIHelperDialog extends HelperDialog {
 		if (getCodeHelper().isDebug()) {
 			getLog().debug(message);
 		}
-
 	}
 
 	public static JsonValue jsonValue(String value) {
@@ -286,8 +293,8 @@ public class AIHelperDialog extends HelperDialog {
 		}
 	}
 
-	public Set<String> getProcessorNames(TextEditor textEditor) {
-		Set<String> processorClassList = new HashSet<>();
+	public Collection<String> getProcessorNames(TextEditor textEditor) {
+		List<String> processorClassList = new ArrayList<>();
 		processorClassList.add(BaseProcessor.class.getSimpleName());
 		Node taskNode = new EasyParser().getObject(textEditor.getRecipePanel().getEditor().getText());
 		if (taskNode != null) {
