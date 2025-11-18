@@ -39,7 +39,7 @@ Below is an example of how to configure the AI Code Helper in `ae.xml`:
 **`<Editor>`**:
 
 - The `helper="AIHelper"` attribute specifies the AI Code Helper to enable.
-- The `apiKey` attribute references the `OPENAI_API_KEY` variable to authenticate requests to OpenAI.
+- The `apiKey` attribute specifies the apiKey to authenticate OpenAI requests.
 - The `debug` enables debug mode for logging additional information during LLM request execution (optional).
 
 With this configuration, Anteater is ready to leverage AI capabilities for code assistance, enhancing your workflows with intelligent suggestions and automation.
