@@ -5,6 +5,7 @@
 The **AI-AE-Plugin** is an Anteater plugin that introduces support for AI-powered workflows by integrating with Large Language Models (LLMs) like OpenAI GPT. This plugin enables users to generate content dynamically within Anteater recipes and provides command processors.
 
 ## **Features**
+
 - **AI-Powered Recipe Code Generation**:
 		Use the `<Editor helper="AIHelper" apiKey="$var{OPENAI_API_KEY}"/>` configuration to interact with LLMs and generate recipe code.
 - **AI-Powered Content Generation**:
@@ -14,10 +15,41 @@ The **AI-AE-Plugin** is an Anteater plugin that introduces support for AI-powere
 - **Seamless Integration**:
 		Easily integrate AI responses into your Anteater workflows using variables and output commands.
 
-## **Command: `<Prompt>`**
+## AI Code Helper
+
+### **Configuration**
+
+To use the **AI Code Helper** feature, you need to add the `<Editor>` configuration tag in your Anteater configuration file (`ae.xml`). This enables the integration with AI-powered tools like OpenAI for code assistance.
+
+#### **Example Configuration**
+Below is an example of how to configure the AI Code Helper in `ae.xml`:
+
+```xml
+<Environment>
+	<Configuration name="My Configuration">
+		<!-- Define the OpenAI API Key -->
+		<Var name="OPENAI_API_KEY" init="console" type="password" />
+
+		<!-- Enable AI Code Helper -->
+		<Editor helper="AIHelper" apiKey="$var{OPENAI_API_KEY}"/>
+	</Configuration>
+</Environment>
+```
+
+**`<Editor>`**:
+
+- The `helper="AIHelper"` attribute specifies the AI Code Helper to enable.
+- The `apiKey` attribute references the `OPENAI_API_KEY` variable to authenticate requests to OpenAI.
+- The `debug` enables debug mode for logging additional information during LLM request execution (optional).
+
+With this configuration, Anteater is ready to leverage AI capabilities for code assistance, enhancing your workflows with intelligent suggestions and automation.
+
+## LLM Command Processor
+
+### **Command: `<Prompt>`**
 The `<Prompt>` command is used to send a query to an LLM and store the generated response in a variable. This command is highly flexible and can be used in a variety of scenarios, such as content generation, summarization, or creative tasks.
 
-### **Attributes**
+#### **Attributes**
 - **`name`**:
 		Defines the variable name where the LLM's response will be stored.
 - **`model`**:
@@ -25,7 +57,7 @@ The `<Prompt>` command is used to send a query to an LLM and store the generated
 - **Text Content**:
 		The content inside the `<Prompt>` tag is the query or instruction sent to the LLM.
 
-## **Example Usage**
+### **Example Usage**
 
 Below is an example recipe that demonstrates how to use the `<Prompt>` command with the AI-AE-Plugin to generate a short poem about the beauty of nature.
 
@@ -43,7 +75,7 @@ Below is an example recipe that demonstrates how to use the `<Prompt>` command w
 </Recipe>
 ```
 
-### **Explanation**
+#### **Explanation**
 1. **`<Extern>`**:
 	- The `class` attribute specifies the processor to use (`LLM` in this case).
 	- The `apiKey` attribute provides the OpenAI API key, which is required to access the GPT model. The API key can be stored as a variable (e.g., `$var{OPENAI_API_KEY}`).
@@ -55,7 +87,7 @@ Below is an example recipe that demonstrates how to use the `<Prompt>` command w
 3. **`<Out>`**:
 	- Outputs the response stored in `responseText` to the console at the `info` log level.
 
-## **Prerequisites**
+### **Prerequisites**
 1. **OpenAI API Key**:
 	- Ensure you have a valid OpenAI API key. Store the key in a variable (e.g., `$var{OPENAI_API_KEY}`) for secure access.
 2. **Anteater with AI-AE-Plugin**:
@@ -69,7 +101,7 @@ Below is an example recipe that demonstrates how to use the `<Prompt>` command w
 3. **Run Anteater**:
 	- Execute your recipe using Anteater as usual. The plugin will handle all interactions with the LLM.
 
-## **Additional Notes**
+### **Additional Notes**
 - **Supported Models**:
 	- The plugin currently supports OpenAI models such as `gpt-4` and `gpt-3.5-turbo`.
 - **Error Handling**:
