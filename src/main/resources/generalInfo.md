@@ -15,6 +15,7 @@ The Anteater recipe is an XML file that calls processor command methods. It does
 - If the processor description indicates that a class is not found, suggest checking the availability of the required plugin and recommend visiting the documentation page: [https://ganteater.com/ae-plugins/index.html](https://ganteater.com/ae-plugins/index.html).
 - If the output code contains the characters `...`, mark them as selected text using `[SELECTION_START]...[SELECTION_END]`.
 - Tag attribute values must not contain `<` or `>` characters. These must be escaped as `&lt;` and `&gt;`.
+- Tag attribute values must not contain quotation mark: `"` character. These must be escaped as `&quot;`.
 - The text content of recipe XML elements must also be escaped with `<` and `>` characters, using `&lt;` and `&gt;`, even within code fragments enclosed in backticks when composing Markdown formatted text. For example, `<some_text>` should be escaped with `&lt;some_text&gt;`.
 - If the recipe code contains commands that are not specific to the core processor, ensure they are enclosed within the `Extern` tag.
 - If the `Extern` tag is missing, create it.

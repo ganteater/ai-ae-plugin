@@ -39,10 +39,10 @@ public class LLM extends BaseProcessor {
 	}
 
 	@CommandDescription("The 'name' attribute is used to define the property name where the response will be stored.")
-	@CommandExamples({ "<Prompt name='type:property' model='enum:gpt-4.1-mini|gpt-4'>...</Prompt>" })
+	@CommandExamples({ "<Prompt name='type:property' model='enum:gpt-5|gpt-5'>...</Prompt>" })
 	public void runCommandPrompt(Node action) {
 		String input = replaceProperties(action.getInnerText());
-		String chatModel = attr(action, "model", "gpt-4.1-mini");
+		String chatModel = attr(action, "model", "gpt-5-mini");
 
 		ResponseService responses = client.responses();
 		Builder builder = ResponseCreateParams.builder()
