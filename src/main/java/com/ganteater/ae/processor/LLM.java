@@ -57,12 +57,14 @@ public class LLM extends BaseProcessor {
 
 		Response response = responses.create(params);
 		List<ResponseOutputItem> output = response.output();
-		ResponseOutputItem responseOutputItem = output.get(0);
-		Optional<ResponseOutputMessage> messageOpt = responseOutputItem.message();
-		if (messageOpt.isPresent()) {
-			ResponseOutputMessage message = messageOpt.get();
-			String responseText = message.content().get(0).outputText().get().text();
-			setVariableValue(action.getAttribute("name"), responseText);
+		for (ResponseOutputItem responseOutputItem : output) {
+			Optional<ResponseOutputMessage> messageOpt = responseOutputItem.message();
+			if (messageOpt.isPresent()) {
+				ResponseOutputMessage message = messageOpt.get();
+				String responseText = message.content().get(0).outputText().get().text();
+				setVariableValue(action.getAttribute("name"), responseText);
+				break;
+			}
 		}
 	}
 }
