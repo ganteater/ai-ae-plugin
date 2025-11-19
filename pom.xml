@@ -12,6 +12,7 @@
 	</parent>
 
 	<artifactId>ai-ae-plugin</artifactId>
+	<version>1.2.5-SNAPSHOT</version>
 	<name>AI Anteater Plugin</name>
 	<description>Module provides anteater plugin for AI.</description>
 	<url>https://github.com/ganteater/ai-ae-plugin</url>
