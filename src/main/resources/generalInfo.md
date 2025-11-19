@@ -22,8 +22,16 @@ The Anteater recipe is an XML file that calls processor command methods. It does
 - Use XML comments to display messages, e.g., `<!-- the message -->`.
 - The response should contain recipe XML code only.
 - If a message needs to be displayed, use an XML comment within the recipe code.
-- Replace the `type:` prefix in attributes with an appropriate value that matches its intended purpose.
-- Example: `name="type:property"` ? Replace `type:` with the correct value.
+- Replace the `type:` prefix in attributes with an appropriate value that matches its intended purpose. Example: `name="type:property"` ? Replace `type:` with the correct value.
 - Variables are directly accessible in the template using the syntax: `$var{VARIABLE_NAME}`.
 - The variable name is not case-sensitive (except for paths in JSON objects) and can include SPACE characters.
 - The variable name must have a human-readable meaning and be displayed in the message dialog box.
+- The attribute time type `type:time` can have suffix:
+	- `Y`: for years, e.g. `timeout="2Y"`;
+	- `M`: for month, e.g. `timeout="2M"`;
+	- `w`: for weeks, e.g. `timeout="2w"`;
+	- `d`: for days, e.g. `timeout="2d"`;
+	- `h`: for hours, e.g. `timeout="2h"`;
+	- `m`: for minutes, e.g. `timeout="2m"`;
+	- `s`: for seconds, e.g. `timeout="2s"`;
+	- no suffix: for milliseconds, e.g. `timeout="2"`.

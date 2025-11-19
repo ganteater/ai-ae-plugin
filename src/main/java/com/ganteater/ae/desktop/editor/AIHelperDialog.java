@@ -13,10 +13,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
@@ -49,7 +47,10 @@ import com.openai.models.responses.FunctionTool.Parameters;
 import com.openai.models.responses.Response;
 import com.openai.models.responses.ResponseCreateParams;
 import com.openai.models.responses.ResponseCreateParams.Builder;
+import com.openai.models.responses.ResponseCreateParams.Input;
 import com.openai.models.responses.ResponseFunctionToolCall;
+import com.openai.models.responses.ResponseInputItem;
+import com.openai.models.responses.ResponseInputItem.FunctionCallOutput;
 import com.openai.models.responses.ResponseOutputItem;
 import com.openai.models.responses.ResponseOutputMessage;
 import com.openai.models.responses.ResponseUsage;
@@ -131,10 +132,78 @@ public class AIHelperDialog extends HelperDialog {
 
 	protected void performRequest(OpenAIClient client) {
 		try {
-			TextEditor text = getCodeHelper().getEditor();
-			Collection<String> processors = getProcessorNames(text);
+			TextEditor textEditor = getCodeHelper().getEditor();
 
-			Response response = request(client, processors);
+			int caretPosition = textEditor.getCaretPosition();
+			int selectionStart = textEditor.getSelectionStart();
+			int selectionEnd = textEditor.getSelectionEnd();
+			String text = textEditor.getText();
+
+			Prompt.Builder promptBuilder = new Prompt.Builder();
+			promptBuilder.context(generalInfo);
+
+			AIHelper aiHelper = getCodeHelper();
+			Collection<String> processors = getProcessorNames(textEditor);
+			aiHelper.appendExampleContext(promptBuilder, processors);
+			aiHelper.appendSystemVariablesContext(promptBuilder);
+
+			Builder builder = ResponseCreateParams.builder();
+			com.openai.models.responses.FunctionTool.Builder ft_builder = FunctionTool.builder();
+
+			ft_builder.name(GET_PROCESSOR_INFO).description("Get help documentation about anteater command Processor.");
+
+			Parameters ft_params = Parameters.builder()
+					.putAdditionalProperty("properties", jsonValue("{'processorName': {'type': 'string'}}"))
+					.putAdditionalProperty("type", JsonString.of("object"))
+					.putAdditionalProperty("required", jsonValue("['processorName']"))
+					.build();
+
+			ft_builder.parameters(ft_params);
+
+			FunctionTool functionTool = ft_builder.strict(false).build();
+			Tool function = Tool.ofFunction(functionTool);
+
+			promptBuilder.source(text, "xml", caretPosition, selectionStart, selectionEnd)
+					.input(editor.getText());
+
+			String input = promptBuilder.build().buildPrompt();
+			debug(new AELogRecord(input, "md", "Input"));
+
+			if (temperature != null) {
+				builder.temperature(temperature);
+			}
+
+			String chatModel = getCodeHelper().getChatModel();
+			ResponseCreateParams params = builder.addTool(function)
+					.model(chatModel)
+					.input(input)
+					.build();
+
+			ResponseService responses = client.responses();
+
+			List<ResponseInputItem> inputs = new ArrayList<>();
+
+			com.openai.models.responses.ResponseInputItem.Message message = com.openai.models.responses.ResponseInputItem.Message
+					.builder()
+					.role(com.openai.models.responses.ResponseInputItem.Message.Role.USER)
+					.addInputTextContent(input).build();
+			inputs.add(ResponseInputItem.ofMessage(message));
+
+			params = builder.addTool(function)
+					.model(chatModel)
+					.input(Input.ofResponse(inputs))
+					.build();
+			Response response = responses.create(params);
+
+			ResponseUsage responseUsage = response.usage().get();
+			long inputTokens = responseUsage.inputTokens();
+			long inputCachedTokens = responseUsage.inputTokensDetails().cachedTokens();
+			long outputTokens = responseUsage.outputTokens();
+			long reasoningTokens = responseUsage.outputTokensDetails().reasoningTokens();
+
+			debug(String.format("Input: %1$d, cached: %2$d, output: %3$d, reasoning: %4$d tokens.",
+					inputTokens, inputCachedTokens, outputTokens, reasoningTokens));
+
 			List<ResponseOutputItem> output = response.output();
 
 			for (ResponseOutputItem responseOutputItem : output) {
@@ -142,6 +211,8 @@ public class AIHelperDialog extends HelperDialog {
 				if (functionCall.isPresent()) {
 					ResponseFunctionToolCall responseFunctionToolCall = functionCall.get();
 					String name = responseFunctionToolCall.name();
+					String id = responseFunctionToolCall.id().get();
+					String callId = responseFunctionToolCall.callId();
 
 					String arguments = responseFunctionToolCall.arguments();
 
@@ -153,17 +224,46 @@ public class AIHelperDialog extends HelperDialog {
 					String processorName = argumentsJson.get("processorName").textValue();
 
 					List<String> processorClassNames = new ArrayList<>();
-					processorClassNames.add(BaseProcessor.class.getSimpleName());
 					processorClassNames.add(processorName);
 
-					response = request(client, processorClassNames);
+					promptBuilder = new Prompt.Builder();
+					aiHelper.appendExampleContext(promptBuilder, processorClassNames);
+					String processorInfo = promptBuilder.build().buildPrompt();
+
+					getLog().debug("callId: " + callId);
+
+					responses = client.responses();
+					inputs = new ArrayList<>();
+
+// 					FunctionCallOutput callOutput = FunctionCallOutput.builder()
+//							.callId(callId)
+//							.output(processorInfo)
+//							.status(ResponseInputItem.FunctionCallOutput.Status.COMPLETED)
+//							.build();
+//					inputs.add(ResponseInputItem.ofFunctionCallOutput(callOutput));
+
+					com.openai.models.responses.ResponseInputItem.Message callOutput = com.openai.models.responses.ResponseInputItem.Message
+							.builder()
+							.role(com.openai.models.responses.ResponseInputItem.Message.Role.USER)
+							.addInputTextContent(processorInfo).build();
+					inputs.add(ResponseInputItem.ofMessage(callOutput));
+
+					inputs.add(ResponseInputItem.ofMessage(message));
+
+					params = ResponseCreateParams.builder()
+							.model(chatModel)
+							.addTool(function)
+							.input(Input.ofResponse(inputs))
+							.build();
+					response = responses.create(params);
+
 					output = response.output();
 				}
 
 				Optional<ResponseOutputMessage> messageOpt = getMessage(output);
 				if (messageOpt.isPresent()) {
-					ResponseOutputMessage message = messageOpt.get();
-					String responseText = message.content().get(0).outputText().get().text();
+					ResponseOutputMessage resultMessage = messageOpt.get();
+					String responseText = resultMessage.content().get(0).outputText().get().text();
 					debug(new AELogRecord(responseText, "xml", "Output"));
 					getCodeHelper().hide();
 
@@ -176,8 +276,6 @@ public class AIHelperDialog extends HelperDialog {
 					int cursor = mextract.getPosition(Marker.CURSOR);
 					int start = mextract.getPosition(Marker.SELECTION_START);
 					int end = mextract.getPosition(Marker.SELECTION_END);
-
-					TextEditor textEditor = getCodeHelper().getEditor();
 
 					textEditor.setText(mextract.getText());
 					if (StringUtils.isNotBlank(code)) {
@@ -211,69 +309,6 @@ public class AIHelperDialog extends HelperDialog {
 
 	private Optional<ResponseOutputMessage> getMessage(List<ResponseOutputItem> output) {
 		return output.get(output.size() - 1).message();
-	}
-
-	private Response request(OpenAIClient client, Collection<String> processorClassList) {
-		TextEditor textEditor = getCodeHelper().getEditor();
-
-		int caretPosition = textEditor.getCaretPosition();
-		int selectionStart = textEditor.getSelectionStart();
-		int selectionEnd = textEditor.getSelectionEnd();
-		String text = textEditor.getText();
-
-		Prompt.Builder promptBuilder = new Prompt.Builder();
-		promptBuilder.context(generalInfo);
-
-		AIHelper aiHelper = getCodeHelper();
-		aiHelper.appendExampleContext(promptBuilder, processorClassList);
-		aiHelper.appendSystemVariablesContext(promptBuilder);
-
-		Builder builder = ResponseCreateParams.builder();
-		com.openai.models.responses.FunctionTool.Builder ft_builder = FunctionTool.builder();
-
-		ft_builder.name(GET_PROCESSOR_INFO).description("Get help documentation about anteater command Processor.");
-
-		Parameters ft_params = Parameters.builder()
-				.putAdditionalProperty("properties", jsonValue("{'processorName': {'type': 'string'}}"))
-				.putAdditionalProperty("type", JsonString.of("object"))
-				.putAdditionalProperty("required", jsonValue("['processorName']"))
-				.build();
-
-		ft_builder.parameters(ft_params);
-
-		FunctionTool functionTool = ft_builder.strict(false).build();
-		Tool function = Tool.ofFunction(functionTool);
-
-		promptBuilder.source(text, "xml", caretPosition, selectionStart, selectionEnd)
-				.input(editor.getText());
-
-		String input = promptBuilder.build().buildPrompt();
-		debug(new AELogRecord(input, "md", "Input"));
-
-		String chatModel = getCodeHelper().getChatModel();
-
-		if (temperature != null) {
-			builder.temperature(temperature);
-		}
-
-		ResponseCreateParams params = builder.addTool(function)
-				.model(chatModel)
-				.input(input)
-				.build();
-
-		ResponseService responses = client.responses();
-		Response response = responses.create(params);
-
-		ResponseUsage responseUsage = response.usage().get();
-		long inputTokens = responseUsage.inputTokens();
-		long inputCachedTokens = responseUsage.inputTokensDetails().cachedTokens();
-		long outputTokens = responseUsage.outputTokens();
-		long reasoningTokens = responseUsage.outputTokensDetails().reasoningTokens();
-
-		debug(String.format("Input: %1$d, cached: %2$d, output: %3$d, reasoning: %4$d tokens.",
-				inputTokens, inputCachedTokens, outputTokens, reasoningTokens));
-
-		return response;
 	}
 
 	private void debug(Object message) {
