@@ -57,6 +57,8 @@ Editor attributes:
 
 With this configuration, Anteater is ready to leverage AI capabilities for code assistance, enhancing your workflows with intelligent suggestions and automation.
 
+![](src/site/resources/images/ai-code-helper.png)
+
 ## LLM Command Processors
 
 ### Command Processor: OpenAI
