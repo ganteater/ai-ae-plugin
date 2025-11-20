@@ -32,6 +32,8 @@ The **AI-AE-Plugin** is an Anteater plugin that introduces support for AI-powere
 
 To use the **AI Code Helper** feature, you need to add the `<Editor>` configuration tag in your Anteater configuration file (`ae.xml`). This enables the integration with AI-powered tools like OpenAI for code assistance.
 
+> Note: AICodeHelper only works with the [desktop version of Anteater](https://ganteater.com/anteater-desktop/index.html).
+
 Example Configuration:
 
 Below is an example of how to configure the AI Code Helper in `ae.xml`:
@@ -59,8 +61,21 @@ Editor attributes:
 
 With this configuration, Anteater is ready to leverage AI capabilities for code assistance, enhancing your workflows with intelligent suggestions and automation.
 
-![](src/site/resources/images/ai-code-helper.png)
+### How to Use
 
+1. Open the Recipe Editor:  
+	Start by opening the recipe editor in your Anteater environment.
+
+2. Activate Code Helper:  
+	- Press `Ctrl+Space` or right-click and select **`Code Helper`** from the popup menu.
+	- Ensure the cursor is not positioned directly after `<` or on a tag name. Otherwise, the command code helper will be displayed instead.
+
+3. Command Code Helper:  
+	When activated correctly, the code helper will assist with generating or completing Anteater commands:
+
+	![Code Helper](src/site/resources/images/ai-code-helper.png) 
+
+This feature simplifies the process of writing recipes and ensures accurate syntax and command usage.
 ## LLM Command Processors
 
 ### Command Processor: OpenAI
