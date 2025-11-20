@@ -1,5 +1,7 @@
 ![](src/site/resources/images/ai-ae-plugin.png)
 
+[![Maven Central](https://img.shields.io/maven-central/v/com.ganteater.plugins/ai-ae-plugin.svg)](https://search.maven.org/artifact/com.ganteater.plugins/ai-ae-plugin)
+
 # IA Anteater Plugin
 
 The **AI-AE-Plugin** is an Anteater plugin that introduces support for AI-powered workflows by integrating with Large Language Models (LLMs) like OpenAI GPT. This plugin enables users to generate content dynamically within Anteater recipes and provides command processors.
