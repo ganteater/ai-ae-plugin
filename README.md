@@ -19,7 +19,6 @@ The **AI-AE-Plugin** is an Anteater plugin that introduces support for AI-powere
 
 1. Need to install Anteater application with required plugins: 
 	- Install Anteater, see: [Run Anteater, Run](https://ganteater.com/run-anteater-run.html).
-	- ### **Download and Installation**
 
 2. To use the AI-AE-Plugin, you can either download the JAR file directly or add it as a Maven dependency to your project.
 	- Download the Plugin: [AI Anteater Plugin](https://sourceforge.net/projects/anteater/files/plugins/ai-ae-plugin.jar/download)
@@ -36,7 +35,7 @@ The **AI-AE-Plugin** is an Anteater plugin that introduces support for AI-powere
 
 		[![Maven Central](https://img.shields.io/maven-central/v/com.ganteater.plugins/ai-ae-plugin.svg)](https://search.maven.org/artifact/com.ganteater.plugins/ai-ae-plugin)
 	- Install other plugins (optional), see: [Anteater Plugins](https://ganteater.com/ae-plugins/index.html)
-1. OpenAI API Key:
+3. OpenAI API Key:
 	- Ensure you have a valid OpenAI API key.
 
 ## AI Code Helper
