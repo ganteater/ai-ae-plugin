@@ -22,7 +22,7 @@ The **AI-AE-Plugin** is an Anteater plugin that introduces support for AI-powere
 1. Need to install Anteater application with required plugins: 
 	- Install Anteater, see: [Run Anteater, Run](https://ganteater.com/run-anteater-run.html).
 	- Install AI-AE-Plugion: see: [IA Anteater Plugin](https://github.com/ganteater/ai-ae-plugin)
-	- Install other plugins (OPtional), see: [Anteater Plugins](https://ganteater.com/ae-plugins/index.html)
+	- Install other plugins (optional), see: [Anteater Plugins](https://ganteater.com/ae-plugins/index.html)
 1. OpenAI API Key:
 	- Ensure you have a valid OpenAI API key.
 
