@@ -68,7 +68,7 @@ With this configuration, Anteater is ready to leverage AI capabilities for code 
 
 2. Activate Code Helper:  
 	- Press `Ctrl+Space` or right-click and select **`Code Helper`** from the popup menu.
-	- Ensure the cursor is not positioned directly after `<` or on a tag name. Otherwise, the command code helper will be displayed instead.
+	- Ensure the cursor is not positioned directly after `<` or on a tag name. Otherwise, the [command helper](https://ganteater.com/anteater-desktop/command-helper.html) will be displayed instead.
 
 3. Command Code Helper:  
 	When activated correctly, the code helper will assist with generating or completing Anteater commands:
