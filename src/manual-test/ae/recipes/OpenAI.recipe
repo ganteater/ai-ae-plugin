@@ -1,4 +1,4 @@
-<Recipe name="LLM">
+<Recipe name="OpenAI">
 	<About>
 		<description>
 			This recipe demonstrates the usage of the LLM processor to interact with an AI language model. 
@@ -12,7 +12,7 @@
 			<file name="LLM_Usage_Guide.pdf" width="800" height="600" /> 
 		</attach> 
 	</About> 
-	<Extern class="LLM" apiKey="$var{OPENAI_API_KEY}">
+	<Extern class="OpenAI" apiKey="$var{OPENAI_API_KEY}">
 		<Prompt name="responseText">Write a short poem about the beauty of nature.</Prompt> 
 		<Out name="responseText" level="info" /> 
 	</Extern> 

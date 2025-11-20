@@ -16,12 +16,12 @@ import com.ganteater.ai.Prompt.Builder;
 import com.openai.client.OpenAIClient;
 import com.openai.client.okhttp.OpenAIOkHttpClient;
 
-public class AIHelper extends CodeHelper {
+public class AICodeHelper extends CodeHelper {
 
 	private String chatModel;
 	private boolean debug;
 
-	public AIHelper(TextEditor textEditor) throws IOException, IllegalAccessException {
+	public AICodeHelper(TextEditor textEditor) throws IOException, IllegalAccessException {
 		super(textEditor);
 
 		TaskEditor recipeEditor = getRecipePanel();

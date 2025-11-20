@@ -27,6 +27,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ganteater.ae.AELogRecord;
@@ -50,7 +51,7 @@ import com.openai.models.responses.ResponseCreateParams.Builder;
 import com.openai.models.responses.ResponseCreateParams.Input;
 import com.openai.models.responses.ResponseFunctionToolCall;
 import com.openai.models.responses.ResponseInputItem;
-import com.openai.models.responses.ResponseInputItem.FunctionCallOutput;
+import com.openai.models.responses.ResponseInputItem.Message;
 import com.openai.models.responses.ResponseOutputItem;
 import com.openai.models.responses.ResponseOutputMessage;
 import com.openai.models.responses.ResponseUsage;
@@ -60,7 +61,6 @@ import com.openai.services.blocking.ResponseService;
 public class AIHelperDialog extends HelperDialog {
 
 	private static final String REQUEST_BUTTON_TEXT = "Perform";
-
 	private static final String GET_PROCESSOR_INFO = "getProcessorHelp";
 
 	private JTextArea editor = new JTextArea();
@@ -138,9 +138,8 @@ public class AIHelperDialog extends HelperDialog {
 
 			List<ResponseInputItem> inputs = getMessages(input);
 
-			Tool tool = getTool();
 			ResponseCreateParams params = builder.model(getCodeHelper().getChatModel())
-					.addTool(tool)
+					.tools(getTools())
 					.input(Input.ofResponse(inputs))
 					.build();
 
@@ -148,22 +147,39 @@ public class AIHelperDialog extends HelperDialog {
 			logUsage(response.usage());
 
 			List<ResponseOutputItem> output = response.output();
+			output = performFunction(client, inputs, output);
+			performMessage(output);
 
-			for (ResponseOutputItem responseOutputItem : output) {
-				Optional<ResponseFunctionToolCall> functionCall = responseOutputItem.functionCall();
-				if (functionCall.isPresent()) {
-					ResponseFunctionToolCall responseFunctionToolCall = functionCall.get();
-					String name = responseFunctionToolCall.name();
-					String id = responseFunctionToolCall.id().get();
-					String callId = responseFunctionToolCall.callId();
+		} catch (RateLimitException e) {
+			OptionPane.showMessageDialog(getCodeHelper().getRecipePanel().getFrame(), e.getLocalizedMessage(),
+					"Rate Limit", JOptionPane.ERROR_MESSAGE);
+		} catch (JsonProcessingException e) {
+			throw new IllegalArgumentException(e);
+		}
+	}
 
-					String arguments = responseFunctionToolCall.arguments();
+	private List<ResponseOutputItem> performFunction(OpenAIClient client, List<ResponseInputItem> inputs,
+			List<ResponseOutputItem> output) throws JsonProcessingException, JsonMappingException {
 
-					ObjectMapper objectMapper = new ObjectMapper();
-					JsonNode argumentsJson;
-					argumentsJson = objectMapper.readTree(arguments);
+		ArrayList<ResponseInputItem> arrayList = new ArrayList<ResponseInputItem>();
 
-					debug("Call Function Tool: " + name + ", arguments: " + argumentsJson);
+		for (ResponseOutputItem responseOutputItem : output) {
+			Optional<ResponseFunctionToolCall> functionCall = responseOutputItem.functionCall();
+			if (functionCall.isPresent()) {
+				ResponseFunctionToolCall responseFunctionToolCall = functionCall.get();
+				String name = responseFunctionToolCall.name();
+				String arguments = responseFunctionToolCall.arguments();
+
+				ObjectMapper objectMapper = new ObjectMapper();
+				JsonNode argumentsJson;
+				argumentsJson = objectMapper.readTree(arguments);
+
+				debug("Call Function Tool: " + name + ", arguments: " + argumentsJson);
+
+				String text = null;
+
+				switch (name) {
+				case GET_PROCESSOR_INFO:
 					String processorName = argumentsJson.get("processorName").textValue();
 
 					List<String> processorClassNames = new ArrayList<>();
@@ -171,56 +187,48 @@ public class AIHelperDialog extends HelperDialog {
 
 					com.ganteater.ai.Prompt.Builder promptBuilder = new Prompt.Builder();
 					getCodeHelper().appendExampleContext(promptBuilder, processorClassNames);
-					String processorInfo = promptBuilder.build().buildPrompt();
-
-					getLog().debug("callId: " + callId);
-
-					ResponseService responses = client.responses();
-
-					FunctionCallOutput callOutput = FunctionCallOutput.builder()
-							.id(id)
-							.callId(callId)
-							.output(processorInfo)
-							.status(ResponseInputItem.FunctionCallOutput.Status.COMPLETED)
-							.build();
-
-//					Message callOutput = com.openai.models.responses.ResponseInputItem.Message
-//							.builder()
-//							.role(com.openai.models.responses.ResponseInputItem.Message.Role.USER)
-//							.addInputTextContent(processorInfo).build();
-//					inputs.add(ResponseInputItem.ofMessage(callOutput));
-
-					inputs.add(ResponseInputItem.ofFunctionCallOutput(callOutput));
-					
-					params = ResponseCreateParams.builder()
-							.model(getCodeHelper().getChatModel())
-							.addTool(tool)
-							.input(Input.ofResponse(inputs))
-							.build();
-					response = responses.create(params);
-
-					output = response.output();
+					text = promptBuilder.build().buildPrompt();
 					break;
 				}
 
-				Optional<ResponseOutputMessage> messageOpt = getMessage(output);
-				if (messageOpt.isPresent()) {
-					ResponseOutputMessage resultMessage = messageOpt.get();
-					String responseText = resultMessage.content().get(0).outputText().get().text();
-					debug(new AELogRecord(responseText, "xml", "Output"));
+				debug(new AELogRecord(text, "md", "Input"));
 
-					getCodeHelper().hide();
+				if (text != null) {
+					Message callOutput = com.openai.models.responses.ResponseInputItem.Message
+							.builder()
+							.role(com.openai.models.responses.ResponseInputItem.Message.Role.USER)
+							.addInputTextContent(text).build();
 
-					updateCode(responseText);
-					break;
+					arrayList.add(ResponseInputItem.ofMessage(callOutput));
 				}
 			}
+		}
 
-		} catch (RateLimitException e) {
-			OptionPane.showMessageDialog(getCodeHelper().getRecipePanel().getFrame(), e.getLocalizedMessage(),
-					"Rate Limit", JOptionPane.ERROR_MESSAGE);
-		} catch (JsonProcessingException e) {
-			throw new IllegalArgumentException(e);
+		if (!arrayList.isEmpty()) {
+			arrayList.addAll(inputs);
+
+			ResponseService responses = client.responses();
+			ResponseCreateParams params = ResponseCreateParams.builder()
+					.model(getCodeHelper().getChatModel())
+					.input(Input.ofResponse(arrayList))
+					.build();
+			Response response = responses.create(params);
+			output = response.output();
+		}
+
+		return output;
+	}
+
+	private void performMessage(List<ResponseOutputItem> output) {
+		Optional<ResponseOutputMessage> messageOpt = getMessage(output);
+		if (messageOpt.isPresent()) {
+			ResponseOutputMessage resultMessage = messageOpt.get();
+			String responseText = resultMessage.content().get(0).outputText().get().text();
+			debug(new AELogRecord(responseText, "xml", "Output"));
+
+			getCodeHelper().hide();
+
+			updateCode(responseText);
 		}
 	}
 
@@ -281,7 +289,7 @@ public class AIHelperDialog extends HelperDialog {
 		promptBuilder.source(text, "xml", caretPosition, selectionStart, selectionEnd)
 				.input(editor.getText());
 
-		AIHelper aiHelper = getCodeHelper();
+		AICodeHelper aiHelper = getCodeHelper();
 		Collection<String> processors = getProcessorNames(textEditor);
 		aiHelper.appendExampleContext(promptBuilder, processors);
 		aiHelper.appendSystemVariablesContext(promptBuilder);
@@ -300,22 +308,27 @@ public class AIHelperDialog extends HelperDialog {
 		return inputs;
 	}
 
-	private Tool getTool() {
+	private List<Tool> getTools() {
+		ArrayList<Tool> arrayList = new ArrayList<>();
+
+		arrayList.add(createTool(GET_PROCESSOR_INFO, "Get help documentation about anteater command Processor.",
+				"processorName"));
+
+		return arrayList;
+	}
+
+	private Tool createTool(String name, String description, String paramName) {
 		com.openai.models.responses.FunctionTool.Builder ft_builder = FunctionTool.builder();
-
-		ft_builder.name(GET_PROCESSOR_INFO).description("Get help documentation about anteater command Processor.");
-
+		ft_builder.name(name).description(description);
 		Parameters ft_params = Parameters.builder()
-				.putAdditionalProperty("properties", jsonValue("{'processorName': {'type': 'string'}}"))
+				.putAdditionalProperty("properties", jsonValue("{'" + paramName + "': {'type': 'string'}}"))
 				.putAdditionalProperty("type", JsonString.of("object"))
 				.putAdditionalProperty("required", jsonValue("['processorName']"))
 				.build();
-
 		ft_builder.parameters(ft_params);
 
 		FunctionTool functionTool = ft_builder.strict(false).build();
-		Tool function = Tool.ofFunction(functionTool);
-		return function;
+		return Tool.ofFunction(functionTool);
 	}
 
 	private Optional<ResponseOutputMessage> getMessage(List<ResponseOutputItem> output) {
@@ -342,13 +355,17 @@ public class AIHelperDialog extends HelperDialog {
 	public Collection<String> getProcessorNames(TextEditor textEditor) {
 		List<String> processorClassList = new ArrayList<>();
 		processorClassList.add(BaseProcessor.class.getSimpleName());
-		Node taskNode = new EasyParser().getObject(textEditor.getRecipePanel().getEditor().getText());
-		if (taskNode != null) {
-			Node[] nodes = taskNode.getNodes("Extern");
-			for (Node node : nodes) {
-				String processorClassName = node.getAttribute("class");
-				processorClassList.add(processorClassName);
+		try {
+			Node taskNode = new EasyParser().getObject(textEditor.getRecipePanel().getEditor().getText());
+			if (taskNode != null) {
+				Node[] nodes = taskNode.getNodes("Extern");
+				for (Node node : nodes) {
+					String processorClassName = node.getAttribute("class");
+					processorClassList.add(processorClassName);
+				}
 			}
+		} catch (Exception e) {
+			getLog().error("Recipe parsing failed.", e);
 		}
 
 		return processorClassList;
@@ -387,8 +404,8 @@ public class AIHelperDialog extends HelperDialog {
 	}
 
 	@Override
-	public AIHelper getCodeHelper() {
-		return (AIHelper) super.getCodeHelper();
+	public AICodeHelper getCodeHelper() {
+		return (AICodeHelper) super.getCodeHelper();
 	}
 
 }

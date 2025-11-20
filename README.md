@@ -7,28 +7,22 @@ The **AI-AE-Plugin** is an Anteater plugin that introduces support for AI-powere
 **Features**:
 
 - **AI-Powered Recipe Code Generation**:
-		Use the `<Editor helper="AIHelper" apiKey="$var{OPENAI_API_KEY}"/>` configuration to interact with LLMs and generate recipe code.
+		Use the `<Editor helper="AICodeHelper" apiKey="$var{OPENAI_API_KEY}"/>` configuration to interact with LLMs and generate recipe code.
 - **AI-Powered Content Generation**:
 		Use the `<Prompt>` command to interact with LLMs and generate text-based responses.
 - **Customizable Models**:
-		Specify the model (e.g., `gpt-4`) to tailor the response to your needs.
+		Specify the model (e.g., `gpt-5`) to tailor the response to your needs.
 - **Seamless Integration**:
 		Easily integrate AI responses into your Anteater workflows using variables and output commands.
 
 ## Prerequisites
 
-1. **OpenAI API Key**:
-	- Ensure you have a valid OpenAI API key. Store the key in a variable (e.g., `$var{OPENAI_API_KEY}`) for secure access.
-2. **Anteater with AI-AE-Plugin**:
-	- Download and install the AI-AE-Plugin as part of your Anteater setup.
-
-## Installation
-
-1. Maven coordinates: [![Maven Central](https://img.shields.io/maven-central/v/com.ganteater.plugins/ai-ae-plugin.svg)](https://search.maven.org/artifact/com.ganteater.plugins/ai-ae-plugin)
-1. Download the Plugin:
-	- Obtain the [AI-AE-Plugin JAR file](https://sourceforge.net/projects/anteater/files/plugins/ai-ae-plugin.jar/download) and place it in the `plugins` directory of your Anteater setup.
-3. Run Anteater:
-	- Execute your recipe using Anteater as usual. The plugin will handle all interactions with the LLM.
+1. Need to install Anteater application with required plugins: 
+	- Install Anteater, see: [Run Anteater, Run](https://ganteater.com/run-anteater-run.html).
+	- Install AI-AE-Plugion: see: [IA Anteater Plugin](https://github.com/ganteater/ai-ae-plugin)
+	- Install other plugins (OPtional), see: [Anteater Plugins](https://ganteater.com/ae-plugins/index.html)
+1. OpenAI API Key:
+	- Ensure you have a valid OpenAI API key.
 
 ## AI Code Helper
 
@@ -36,7 +30,8 @@ The **AI-AE-Plugin** is an Anteater plugin that introduces support for AI-powere
 
 To use the **AI Code Helper** feature, you need to add the `<Editor>` configuration tag in your Anteater configuration file (`ae.xml`). This enables the integration with AI-powered tools like OpenAI for code assistance.
 
-#### Example Configuration
+Example Configuration:
+
 Below is an example of how to configure the AI Code Helper in `ae.xml`:
 
 ```xml
@@ -46,70 +41,78 @@ Below is an example of how to configure the AI Code Helper in `ae.xml`:
 		<Var name="OPENAI_API_KEY" init="console" type="password" />
 
 		<!-- Enable AI Code Helper -->
-		<Editor helper="AIHelper" apiKey="$var{OPENAI_API_KEY}"/>
+		<Editor helper="AICodeHelper" apiKey="$var{OPENAI_API_KEY}"/>
 	</Configuration>
 </Environment>
 ```
 
-**`<Editor>`**:
+Editor attributes:
 
-- The `helper="AIHelper"` attribute specifies the AI Code Helper to enable.
+- The `helper="AICodeHelper"` attribute specifies the AI Code Helper to enable.
 - The `apiKey` attribute specifies the apiKey to authenticate OpenAI requests.
+- The `model` specifies the OpenAI model to use. Supported values:
+  - `gpt-5`
+  - `gpt-5-mini` (default)
 - The `debug` enables debug mode for logging additional information during LLM request execution (optional).
 
 With this configuration, Anteater is ready to leverage AI capabilities for code assistance, enhancing your workflows with intelligent suggestions and automation.
 
-## LLM Command Processor
+## LLM Command Processors
 
-### Command: `<Prompt>`
+### Command Processor: OpenAI
+
+The **OpenAI processor** is the core component of this plugin, allowing Anteater recipes to call OpenAI services seamlessly. It supports commands for generating responses and managing conversations using OpenAI's models.
+
+Fully Qualified Class Name: `com.ganteater.ae.processor.OpenAI`.
+
+Example:
+
+```xml
+<Extern class="OpenAI" apiKey="$var{OPENAI_API_KEY}" model="gpt-5-mini">
+	<!-- commands -->
+</Extern>
+```
+
+#### Supported Commands
+
+##### Command: `<Prompt>`
 The `<Prompt>` command is used to send a query to an LLM and store the generated response in a variable. This command is highly flexible and can be used in a variety of scenarios, such as content generation, summarization, or creative tasks.
 
-#### Attributes
+Attributes:
+
 - **`name`**:
 		Defines the variable name where the LLM's response will be stored.
-- **`model`**:
-		Specifies the LLM model to use (e.g., `gpt-4`, `gpt-3.5-turbo`).
 - **Text Content**:
 		The content inside the `<Prompt>` tag is the query or instruction sent to the LLM.
 
-### Example Usage
+Example Usage:
 
 Below is an example recipe that demonstrates how to use the `<Prompt>` command with the AI-AE-Plugin to generate a short poem about the beauty of nature.
 
 ```xml
-<Recipe name="LLM">
-    <About>
-        <description>
-            This recipe demonstrates the use of the LLM processor to generate a short poem about the beauty of nature using the GPT-4 model. It requires an OpenAI API key for access.
-        </description> 
-    </About> 
-    <Extern class="LLM" apiKey="$var{OPENAI_API_KEY}">
-        <Prompt name="responseText" model="gpt-4">Write a short poem about the beauty of nature.</Prompt> 
-        <Out name="responseText" level="info" /> 
-    </Extern> 
-</Recipe>
+<Prompt name="AI_PROMPT_RESPONSE">
+	Please rewrite the poem as a 4-line version using simpler language and an uplifting tone while keeping vivid imagery.
+</Prompt>
+<Out name="AI_PROMPT_RESPONSE" />
 ```
 
-#### Explanation
-1. `<Extern>`:
-	- The `class` attribute specifies the processor to use (`LLM` in this case).
-	- The `apiKey` attribute provides the OpenAI API key, which is required to access the GPT model. The API key can be stored as a variable (e.g., `$var{OPENAI_API_KEY}`).
+##### Command: `Messages`
 
-2. `<Prompt>`:
-	- Sends the query `Write a short poem about the beauty of nature` to the GPT-4 model.
-	- The response is stored in the variable `responseText`.
+The `<Messages>` command is used to manage multi-turn conversations with OpenAI's models by exchanging a series of messages. Each message includes a `role` (e.g., `system`, `developer`, or `user`) and its content.
 
-3. `<Out>`:
-	- Outputs the response stored in `responseText` to the console at the `info` log level.
+Attributes:
 
-### Additional Notes
+- **`name`**: Defines the property name where the response will be stored.
 
-- Supported Models:
-	- The plugin currently supports OpenAI models such as `gpt-4` and `gpt-3.5-turbo`.
-- Error Handling:
-	- Ensure the API key is valid and has sufficient permissions to access the specified model.
-- Extensibility:
-	- The plugin can be extended to support additional LLM providers or custom APIs.
+Example:
+
+```xml
+<Messages name="responseText">
+	<message role="system">You are a helpful poet that writes concise, imagery-rich poems.</message>
+	<message role="user">Write a short poem about the beauty of nature.</message>
+</Messages>
+<Out name="responseText" level="info" />
+```
 
 ## Resources
 
