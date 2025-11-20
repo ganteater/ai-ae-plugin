@@ -9,7 +9,7 @@ The **AI-AE-Plugin** is an Anteater plugin that introduces support for AI-powere
 - **AI-Powered Recipe Code Generation**:
 		Use the `<Editor helper="AICodeHelper" apiKey="$var{OPENAI_API_KEY}"/>` configuration to interact with LLMs and generate recipe code.
 - **AI-Powered Content Generation**:
-		Use the commands LLP processors to interact with LLMs and generate text-based responses.
+		Use the commands LLM plugin processors to interact with LLMs and generate text-based responses.
 - **Customizable Models**:
 		Specify the model (e.g., `gpt-5`) to tailor the response to your needs.
 - **Seamless Integration**:
