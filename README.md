@@ -78,12 +78,14 @@ With this configuration, Anteater is ready to leverage AI capabilities for code 
 	- Press `Ctrl+Space` or right-click and select **`Code Helper`** from the popup menu.
 	- Ensure the cursor is not positioned directly after `<` or on a tag name. Otherwise, the [command helper](https://ganteater.com/anteater-desktop/command-helper.html) will be displayed instead.
 
-3. Command Code Helper:  
-	When activated correctly, the code helper will assist with generating or completing Anteater commands:
+3. Input you prompt (e.g.: `create an example of using the Web and the OpenAI processor with their commands`) and click `Perform` button.
 
 	![Code Helper](src/site/resources/images/ai-code-helper.png) 
 
+4. Review the generated [code](src/manual-test/ae/recipes/Web%20And%20OpenAI%20Example.recipe) and try to run.
+
 This feature simplifies the process of writing recipes and ensures accurate syntax and command usage.
+
 ## LLM Command Processors
 
 ### Command Processor: OpenAI
