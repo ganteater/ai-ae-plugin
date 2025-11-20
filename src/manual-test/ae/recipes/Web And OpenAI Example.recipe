@@ -1,0 +1,49 @@
+<Recipe name="Web And OpenAI Example">
+	<!-- Example: Use the Web processor to open a page, extract text and cookies,
+	     then send extracted content to OpenAI for summarization and output the result. --> 
+	<!-- Web processor commands must be wrapped in an Extern tag --> 
+	<Extern class="Web">
+		<!-- Open target page --> 
+		<Page url="https://example.com" timeout="10s" /> 
+		<!-- Capture page title --> 
+		<Title name="PAGE_TITLE" /> 
+		<!-- Extract the first paragraph text using XPath --> 
+		<GetText name="PAGE_EXTRACT" xpath="//p[1]" /> 
+		<!-- Save cookies report --> 
+		<CookieReport name="COOKIE_REPORT" /> 
+		<!-- If a first link exists, click it (optional interaction) --> 
+		<ElementExists xpath="//a[1]">
+			<Click xpath="//a[1]" /> 
+		</ElementExists> 
+		<!-- Short wait to allow navigation if click happened --> 
+		<Wait delay="2s" /> 
+		<!-- Ensure driver closed at the end of web actions --> 
+		<Finally>
+			<!-- Close browser / web driver --> 
+			<CloseDriver /> 
+		</Finally> 
+	</Extern> 
+	<!-- OpenAI processor commands must be wrapped in an Extern tag.
+	     Use the system OPENAI_API_KEY variable for the apiKey attribute. --> 
+	<Extern class="OpenAI" model="gpt-5-mini" apiKey="$var{OPENAI_API_KEY}">
+		<!-- Provide an assistant/system instruction via Messages (optional) --> 
+		<Messages name="AI_MESSAGES">
+			<message role="system">You are a helpful summarization assistant.</message> 
+		</Messages> 
+		<!-- Send the extracted page content for summarization --> 
+		<Prompt name="AI_SUMMARY">
+Please summarize the following page content in 2-3 concise sentences. Keep the summary factual and neutral.
+
+$var{PAGE_EXTRACT}
+		</Prompt> 
+	</Extern> 
+	<!-- Output collected information and AI summary --> 
+	<!-- Display title and raw extracted text --> 
+	<Out name="PAGE_TITLE" level="info" /> 
+	<Out name="PAGE_EXTRACT" level="info" /> 
+	<!-- Display cookie report (raw) --> 
+	<Out name="COOKIE_REPORT" level="debug" /> 
+	<!-- Display AI-generated summary --> 
+	<Out name="AI_SUMMARY" level="info" /> 
+	<!-- End of recipe --> 
+</Recipe> 
