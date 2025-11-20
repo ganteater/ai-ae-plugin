@@ -143,7 +143,7 @@ Example:
 
 ## Resources
 
-[^1] Anteater Documentation: [http://ganteater.com](http://ganteater.com)
+[^1]: Anteater Documentation: [http://ganteater.com](http://ganteater.com)
 [^2]: OpenAI API Documentation: [https://platform.openai.com/docs/](https://platform.openai.com/docs/)
 
 
