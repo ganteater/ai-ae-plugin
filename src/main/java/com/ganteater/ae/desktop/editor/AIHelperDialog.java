@@ -26,8 +26,9 @@ import javax.swing.SwingUtilities;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 
+import com.fasterxml.jackson.annotation.JsonClassDescription;
+import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ganteater.ae.AELogRecord;
@@ -40,28 +41,21 @@ import com.ganteater.ai.Marker;
 import com.ganteater.ai.MarkerExtractResult;
 import com.ganteater.ai.Prompt;
 import com.openai.client.OpenAIClient;
-import com.openai.core.JsonString;
 import com.openai.core.JsonValue;
 import com.openai.errors.RateLimitException;
-import com.openai.models.responses.FunctionTool;
-import com.openai.models.responses.FunctionTool.Parameters;
 import com.openai.models.responses.Response;
 import com.openai.models.responses.ResponseCreateParams;
 import com.openai.models.responses.ResponseCreateParams.Builder;
 import com.openai.models.responses.ResponseCreateParams.Input;
+import com.openai.models.responses.ResponseInputItem.Message;
 import com.openai.models.responses.ResponseFunctionToolCall;
 import com.openai.models.responses.ResponseInputItem;
-import com.openai.models.responses.ResponseInputItem.Message;
-import com.openai.models.responses.ResponseOutputItem;
-import com.openai.models.responses.ResponseOutputMessage;
+import com.openai.models.responses.ResponseOutputMessage.Content;
 import com.openai.models.responses.ResponseUsage;
-import com.openai.models.responses.Tool;
-import com.openai.services.blocking.ResponseService;
 
 public class AIHelperDialog extends HelperDialog {
 
 	private static final String REQUEST_BUTTON_TEXT = "Perform";
-	private static final String GET_PROCESSOR_INFO = "getProcessorHelp";
 
 	private JTextArea editor = new JTextArea();
 	private String generalInfo;
@@ -134,102 +128,76 @@ public class AIHelperDialog extends HelperDialog {
 			String input = getInput();
 			debug(new AELogRecord(input, "md", "Input"));
 
-			Builder builder = ResponseCreateParams.builder();
+			List<ResponseInputItem> inputs = new ArrayList<>();
 
-			List<ResponseInputItem> inputs = getMessages(input);
-
-			ResponseCreateParams params = builder.model(getCodeHelper().getChatModel())
-					.tools(getTools())
-					.input(Input.ofResponse(inputs))
+			Message message = com.openai.models.responses.ResponseInputItem.Message
+					.builder()
+					.role(com.openai.models.responses.ResponseInputItem.Message.Role.USER)
+					.addInputTextContent(input)
 					.build();
 
-			Response response = client.responses().create(params);
+			inputs.add(ResponseInputItem.ofMessage(message));
+
+			Builder builder = ResponseCreateParams.builder()
+					.model(getCodeHelper().getChatModel())
+					.addTool(GetProcessorInfo.class)
+					.input(Input.ofResponse(inputs));
+
+			Response response = client.responses().create(builder.build());
 			logUsage(response.usage());
 
-			List<ResponseOutputItem> output = response.output();
-			output = performFunction(client, inputs, output);
-			performMessage(output);
+			response.output().forEach(item -> {
+				if (item.isFunctionCall()) {
+					ResponseFunctionToolCall functionCall = item.asFunctionCall();
+
+					inputs.add(ResponseInputItem.ofFunctionCall(functionCall));
+					inputs.add(ResponseInputItem.ofFunctionCallOutput(ResponseInputItem.FunctionCallOutput.builder()
+							.callId(functionCall.callId())
+							.outputAsJson(callFunction(functionCall, this))
+							.build()));
+				}
+				if (item.isReasoning()) {
+					ResponseInputItem reasoning = ResponseInputItem.ofReasoning(item.asReasoning());
+					inputs.add(reasoning);
+				}
+			});
+
+			if (!inputs.isEmpty()) {
+				builder.input(ResponseCreateParams.Input.ofResponse(inputs));
+				response = client.responses().create(builder.build());
+				logUsage(response.usage());
+			}
+
+			response.output().forEach(item -> {
+				if (item.isMessage()) {
+					List<Content> content = item.asMessage().content();
+					performMessage(content);
+				}
+			});
 
 		} catch (RateLimitException e) {
 			OptionPane.showMessageDialog(getCodeHelper().getRecipePanel().getFrame(), e.getLocalizedMessage(),
 					"Rate Limit", JOptionPane.ERROR_MESSAGE);
-		} catch (JsonProcessingException e) {
-			throw new IllegalArgumentException(e);
 		}
 	}
 
-	private List<ResponseOutputItem> performFunction(OpenAIClient client, List<ResponseInputItem> inputs,
-			List<ResponseOutputItem> output) throws JsonProcessingException, JsonMappingException {
-
-		ArrayList<ResponseInputItem> arrayList = new ArrayList<ResponseInputItem>();
-
-		for (ResponseOutputItem responseOutputItem : output) {
-			Optional<ResponseFunctionToolCall> functionCall = responseOutputItem.functionCall();
-			if (functionCall.isPresent()) {
-				ResponseFunctionToolCall responseFunctionToolCall = functionCall.get();
-				String name = responseFunctionToolCall.name();
-				String arguments = responseFunctionToolCall.arguments();
-
-				ObjectMapper objectMapper = new ObjectMapper();
-				JsonNode argumentsJson;
-				argumentsJson = objectMapper.readTree(arguments);
-
-				debug("Call Function Tool: " + name + ", arguments: " + argumentsJson);
-
-				String text = null;
-
-				switch (name) {
-				case GET_PROCESSOR_INFO:
-					String processorName = argumentsJson.get("processorName").textValue();
-
-					List<String> processorClassNames = new ArrayList<>();
-					processorClassNames.add(processorName);
-
-					com.ganteater.ai.Prompt.Builder promptBuilder = new Prompt.Builder();
-					getCodeHelper().appendExampleContext(promptBuilder, processorClassNames);
-					text = promptBuilder.build().buildPrompt();
-					break;
-				}
-
-				debug(new AELogRecord(text, "md", "Input"));
-
-				if (text != null) {
-					Message callOutput = com.openai.models.responses.ResponseInputItem.Message
-							.builder()
-							.role(com.openai.models.responses.ResponseInputItem.Message.Role.USER)
-							.addInputTextContent(text).build();
-
-					arrayList.add(ResponseInputItem.ofMessage(callOutput));
-				}
-			}
+	private static Object callFunction(ResponseFunctionToolCall function, AIHelperDialog helperDialog) {
+		switch (function.name()) {
+		case "GetProcessorInfo":
+			GetProcessorInfo getProcessorInfo = function.arguments(GetProcessorInfo.class);
+			getProcessorInfo.helperDialog = helperDialog;
+			return getProcessorInfo.execute();
+		default:
+			throw new IllegalArgumentException("Unknown function: " + function.name());
 		}
-
-		if (!arrayList.isEmpty()) {
-			arrayList.addAll(inputs);
-
-			ResponseService responses = client.responses();
-			ResponseCreateParams params = ResponseCreateParams.builder()
-					.model(getCodeHelper().getChatModel())
-					.input(Input.ofResponse(arrayList))
-					.build();
-			Response response = responses.create(params);
-			output = response.output();
-		}
-
-		return output;
 	}
 
-	private void performMessage(List<ResponseOutputItem> output) {
-		Optional<ResponseOutputMessage> messageOpt = getMessage(output);
-		if (messageOpt.isPresent()) {
-			ResponseOutputMessage resultMessage = messageOpt.get();
-			String responseText = resultMessage.content().get(0).outputText().get().text();
-			debug(new AELogRecord(responseText, "xml", "Output"));
+	private void performMessage(List<Content> content) {
+		String responseText = content.get(0).outputText().get().text();
+		debug(new AELogRecord(responseText, "xml", "Output"));
 
-			getCodeHelper().hide();
-
-			updateCode(responseText);
-		}
+		getCodeHelper().hide();
+		updateCode(responseText);
 	}
 
 	private void updateCode(String responseText) {
@@ -295,44 +263,6 @@ public class AIHelperDialog extends HelperDialog {
 		aiHelper.appendSystemVariablesContext(promptBuilder);
 
 		return promptBuilder.build().buildPrompt();
-	}
-
-	private List<ResponseInputItem> getMessages(String input) {
-		List<ResponseInputItem> inputs = new ArrayList<>();
-
-		com.openai.models.responses.ResponseInputItem.Message message = com.openai.models.responses.ResponseInputItem.Message
-				.builder()
-				.role(com.openai.models.responses.ResponseInputItem.Message.Role.USER)
-				.addInputTextContent(input).build();
-		inputs.add(ResponseInputItem.ofMessage(message));
-		return inputs;
-	}
-
-	private List<Tool> getTools() {
-		ArrayList<Tool> arrayList = new ArrayList<>();
-
-		arrayList.add(createTool(GET_PROCESSOR_INFO, "Get help documentation about anteater command Processor.",
-				"processorName"));
-
-		return arrayList;
-	}
-
-	private Tool createTool(String name, String description, String paramName) {
-		com.openai.models.responses.FunctionTool.Builder ft_builder = FunctionTool.builder();
-		ft_builder.name(name).description(description);
-		Parameters ft_params = Parameters.builder()
-				.putAdditionalProperty("properties", jsonValue("{'" + paramName + "': {'type': 'string'}}"))
-				.putAdditionalProperty("type", JsonString.of("object"))
-				.putAdditionalProperty("required", jsonValue("['processorName']"))
-				.build();
-		ft_builder.parameters(ft_params);
-
-		FunctionTool functionTool = ft_builder.strict(false).build();
-		return Tool.ofFunction(functionTool);
-	}
-
-	private Optional<ResponseOutputMessage> getMessage(List<ResponseOutputItem> output) {
-		return output.get(output.size() - 1).message();
 	}
 
 	private void debug(Object message) {
@@ -406,6 +336,25 @@ public class AIHelperDialog extends HelperDialog {
 	@Override
 	public AICodeHelper getCodeHelper() {
 		return (AICodeHelper) super.getCodeHelper();
+	}
+
+	@JsonClassDescription("Get help documentation about anteater command Processor.")
+	static class GetProcessorInfo {
+		@JsonPropertyDescription("The name of command processor.")
+		public String name;
+
+		protected AIHelperDialog helperDialog;
+
+		public String execute() {
+			List<String> processorClassNames = new ArrayList<>();
+			processorClassNames.add(name);
+
+			com.ganteater.ai.Prompt.Builder promptBuilder = new Prompt.Builder();
+			helperDialog.getCodeHelper().appendExampleContext(promptBuilder, processorClassNames);
+			String text = promptBuilder.build().buildPrompt();
+			helperDialog.debug(new AELogRecord(text, "md", "GetProcessorInfo:" + name));
+			return text;
+		}
 	}
 
 }

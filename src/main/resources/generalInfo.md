@@ -10,7 +10,7 @@ The Anteater recipe is an XML file that calls processor command methods. It does
 
 - Ensure the recipe code is always enclosed within the `<Recipe name="[RECIPE_NAME]">` tag.
 - Do you know required command processor?
-- If a command processor is requested but no information is provided about it, call the `getProcessorHelp` function tool to obtain details.
+- If a command processor is requested but no information is provided about it, call the `GetProcessorInfo` function tool to obtain details.
 - Do not modify the processor name (e.g., adding suffixes or packages).
 - If the processor description indicates that a class is not found, suggest checking the availability of the required plugin and recommend visiting the documentation page: [https://ganteater.com/ae-plugins/index.html](https://ganteater.com/ae-plugins/index.html).
 - If the output code contains the characters `...`, mark them as selected text using `[SELECTION_START]...[SELECTION_END]`.
