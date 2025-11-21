@@ -178,6 +178,18 @@ Below is an example recipe that demonstrates how to use the `<Function>` command
 </Function>
 ```
 
+Other Examples:
+
+Here are additional examples of recipes that demonstrate the use of the `<Function>` command and related tools:
+
+- [Create Note](src/manual-test/ae/recipes/Create%20Note.recipe):  
+  This recipe showcases how to use the `<Function>` command to create and manage notes dynamically.
+
+- [Function Tool Test](src/manual-test/ae/recipes/Function%20Tool%20Test.recipe):  
+  This recipe provides a comprehensive test of the Function Tool, including parameter handling, task execution, and output generation.
+
+These examples can help you better understand how to implement and utilize the `<Function>` command in your own Anteater recipes.
+
 [^1]: Anteater Documentation: [http://ganteater.com](http://ganteater.com)
 [^2]: OpenAI API Documentation: [https://platform.openai.com/docs/](https://platform.openai.com/docs/)
 
