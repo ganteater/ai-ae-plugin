@@ -12,8 +12,6 @@ import java.util.Set;
 import org.apache.commons.lang.ObjectUtils;
 import org.apache.commons.lang.StringUtils;
 
-import com.fasterxml.jackson.annotation.JsonClassDescription;
-import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -132,56 +130,6 @@ public class OpenAI extends BaseProcessor {
 		setVariable(name, response);
 	}
 
-	private Object callFunction(ResponseFunctionToolCall function) throws CommandException {
-		String name = function.name();
-		String returnValue = null;
-		Set<Entry<Tool, Node>> toolSet = toolsMap.entrySet();
-		for (Entry<Tool, Node> entry : toolSet) {
-			Tool tool = entry.getKey();
-
-			if (tool.isFunction()) {
-				FunctionTool functionTool = tool.function().get();
-				if (functionTool.name().equals(name)) {
-					Node functionNode = entry.getValue();
-					@SuppressWarnings("unchecked")
-					ObjectMapper mapper = new ObjectMapper();
-					try {
-						JsonNode args = mapper.readTree(function.arguments());
-						Iterator<String> fieldNames = args.fieldNames();
-						while (fieldNames.hasNext()) {
-							String propName = (String) fieldNames.next();
-							String value = args.get(propName).asText();
-							setVariableValue(propName, value);
-						}
-
-					} catch (JsonProcessingException e) {
-						throw new IllegalArgumentException("Argument parsing failed. Name: " + name, e);
-					}
-
-					runNodes(functionNode.getNodes("Task"));
-
-					String returnName = attr(functionNode, "return");
-					if (returnName != null) {
-						returnValue = getVariableString(returnName);
-					}
-					break;
-				}
-			}
-		}
-
-		return returnValue;
-	}
-
-	private Message message(String input, String role) {
-		String text = replaceProperties(input);
-		Message message = com.openai.models.responses.ResponseInputItem.Message
-				.builder()
-				.role(com.openai.models.responses.ResponseInputItem.Message.Role.of(role))
-				.addInputTextContent(text)
-				.build();
-		return message;
-	}
-
 	@CommandDescription("Function command to create a function tool. Property tags define the properties of the function tool. "
 			+ "The Task command is called when the model requests the function.")
 	@CommandExamples({
@@ -232,6 +180,56 @@ public class OpenAI extends BaseProcessor {
 
 		Tool tool = Tool.ofFunction(toolBuilder.strict(false).build());
 		toolsMap.put(tool, action);
+	}
+
+	private Object callFunction(ResponseFunctionToolCall function) throws CommandException {
+		String name = function.name();
+		String returnValue = null;
+		Set<Entry<Tool, Node>> toolSet = toolsMap.entrySet();
+		for (Entry<Tool, Node> entry : toolSet) {
+			Tool tool = entry.getKey();
+
+			if (tool.isFunction()) {
+				FunctionTool functionTool = tool.function().get();
+				if (functionTool.name().equals(name)) {
+					Node functionNode = entry.getValue();
+					@SuppressWarnings("unchecked")
+					ObjectMapper mapper = new ObjectMapper();
+					try {
+						JsonNode args = mapper.readTree(function.arguments());
+						Iterator<String> fieldNames = args.fieldNames();
+						while (fieldNames.hasNext()) {
+							String propName = (String) fieldNames.next();
+							String value = args.get(propName).asText();
+							setVariableValue(propName, value);
+						}
+
+					} catch (JsonProcessingException e) {
+						throw new IllegalArgumentException("Argument parsing failed. Name: " + name, e);
+					}
+
+					runNodes(functionNode.getNodes("Task"));
+
+					String returnName = attr(functionNode, "return");
+					if (returnName != null) {
+						returnValue = getVariableString(returnName);
+					}
+					break;
+				}
+			}
+		}
+
+		return returnValue;
+	}
+
+	private Message message(String input, String role) {
+		String text = replaceProperties(input);
+		Message message = com.openai.models.responses.ResponseInputItem.Message
+				.builder()
+				.role(com.openai.models.responses.ResponseInputItem.Message.Role.of(role))
+				.addInputTextContent(text)
+				.build();
+		return message;
 	}
 
 	private void setVariable(String name, Response response) {

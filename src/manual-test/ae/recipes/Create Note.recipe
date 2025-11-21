@@ -1,19 +1,22 @@
 <Recipe name="Create Note">
 	<!-- This recipe uses the OpenAI processor to generate content and create note.txt --> 
 	<Extern class="com.ganteater.ae.processor.OpenAI" model="gpt-5-mini" apiKey="$var{OPENAI_API_KEY}">
-		<Function name="create_note" description="Generate content for note.txt and return as content" type="object" return="note">
+		<Function name="create_note" description="Generate content for note.txt and return as content" type="object">
 			<property name="content" type="string" required="true" /> 
 			<Task>
 				<!-- Write the provided content into note.txt --> 
-				<Out file="note.txt" append="false" encoding="UTF-8">$var{content}</Out> 
+				<Out file="data/note.txt" append="false" encoding="UTF-8">$var{content}</Out> 
 				<Out level="info">note.txt has been created with content: $var{content}</Out> 
 			</Task> 
 		</Function> 
+		<Var name="article" init="console" type="text" /> 
 		<Prompt name="create_note_request">
 			<message role="system">You are a helpful assistant. When instructed to create a note, generate a concise plain-text note that includes 
 			a title line and a short body (2-4 sentences). Do not include any extra commentary outside the note content. Return the result by calling 
 			the function create_note with a single parameter "content" containing the full text to be written to note.txt.</message> 
-			<message role="user">Create a brief note that can be saved as note.txt. Include a clear title and a short body (2-4 sentences).</message> 
+			<message role="user">The article:
+$var{article}</message> 
+			<message role="user">brief summarize the article and saved as note.txt. Include a clear title and a short body (2-4 sentences).</message> 
 		</Prompt> 
 	</Extern> 
 </Recipe> 
