@@ -1,0 +1,21 @@
+<Recipe name="Function Tool Test">
+	<!-- Added OpenAI processor with a Function tool and Messages --> 
+	<Extern class="OpenAI" model="gpt-5-mini" apiKey="$var{OPENAI_API_KEY}" temperature="0.2">
+		<!-- Define a simple function tool named 'echo' that returns the provided message --> 
+		<Function name="echo" description="Echoes the provided message." return="result">
+			<property name="text" type="string" required="true" /> 
+			<Task>
+				<!-- Copy input message to result property to return it as function output --> 
+				<Var name="result" source="text" /> 
+				<Out name="result" /> 
+			</Task> 
+		</Function> 
+		<!-- Messages to send to the OpenAI model; response will be stored in 'aiResponse' property --> 
+		<Prompt name="aiResponse">
+			<message role="system">You are a helpful assistant.</message> 
+			<message role="user">Please call the function "echo" with the text "Hello Anteater!" and return the function result.</message> 
+		</Prompt> 
+		<!-- Output the AI response property to logs --> 
+		<Out name="aiResponse" level="info" /> 
+	</Extern> 
+</Recipe> 
