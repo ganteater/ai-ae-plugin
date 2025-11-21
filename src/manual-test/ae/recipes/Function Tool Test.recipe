@@ -1,6 +1,6 @@
 <Recipe name="Function Tool Test">
 	<!-- Example: OpenAI processor with a Function tool and chat messages --> 
-	<Extern class="com.ganteater.ae.processor.OpenAI" model="gpt-5-mini" apiKey="$var{OPENAI_API_KEY}">
+	<Extern class="OpenAI" model="gpt-5-mini" apiKey="$var{OPENAI_API_KEY}">
 		<!-- Define a function tool that returns mock weather info --> 
 		<Function name="get-weather" description="Get current weather for a city" type="object" return="weatherResult">
 			<property name="city" type="string" required="true" /> 
