@@ -125,22 +125,57 @@ Below is an example recipe that demonstrates how to use the `<Prompt>` command w
 <Out name="AI_PROMPT_RESPONSE" />
 ```
 
-##### Command: `Messages`
+```xml
+<Prompt name="responseText">
+	<message role="system">You are a helpful poet that writes concise, imagery-rich poems.</message>
+	<message role="user">Write a short poem about the beauty of nature.</message>
+</Prompt>
+<Out name="responseText" level="info" />
+```
 
-The `<Messages>` command is used to manage multi-turn conversations with OpenAI's models by exchanging a series of messages. Each message includes a `role` (e.g., `system`, `developer`, or `user`) and its content.
+##### Command: `<Function>`
+
+The `<Function>` command is used to create a **Function Tool** in Anteater. This command defines a custom function that can be executed during recipe execution. It allows you to specify inputs, outputs, and the logic for the function, making it a powerful way to encapsulate reusable operations.
 
 Attributes:
 
-- **`name`**: Defines the property name where the response will be stored.
+- **`name`**:  
+  Defines the name of the function. This name is used to call the function during execution.
 
-Example:
+- **`description`**:  
+  A short description of what the function does. This is useful for documenting the purpose of the function.
+
+- **`type`**:  
+  Specifies the type of data the function returns (e.g., `object`, `string`, `number`, etc.).
+
+- **`return`**:  
+  The variable name where the function's result will be stored after execution.
+
+Child Elements:
+
+- **`<property>`**:  
+  Defines the input parameters for the function. Each property includes:
+  - **`name`**: The name of the parameter.
+  - **`type`**: The data type of the parameter (e.g., `string`, `number`, etc.).
+  - **`required`**: Indicates whether this parameter is mandatory (`true` or `false`).
+
+- **`<Task>`**:  
+  Specifies the implementation of the function. Within the `<Task>` block, you can define variables, perform operations, and output results.
+
+Example Usage:
+
+Below is an example recipe that demonstrates how to use the `<Function>` command to create a tool that retrieves mock weather information for a given city.
 
 ```xml
-<Messages name="responseText">
-	<message role="system">You are a helpful poet that writes concise, imagery-rich poems.</message>
-	<message role="user">Write a short poem about the beauty of nature.</message>
-</Messages>
-<Out name="responseText" level="info" />
+<Function name="get-weather" description="Get current weather for a city" type="object" return="weatherResult">
+	<property name="city" type="string" required="true" />
+	<Task>
+		<!-- Mock implementation: set weatherResult property -->
+		<Var name="weatherResult">{ "city": "$var{city}", "forecast": "sunny" }</Var>
+		<Out name="city" level="info" />
+		<Out name="weatherResult" level="info" />
+	</Task>
+</Function>
 ```
 
 [^1]: Anteater Documentation: [http://ganteater.com](http://ganteater.com)

@@ -1,0 +1,22 @@
+<Recipe name="Function Tool Test">
+	<!-- Example: OpenAI processor with a Function tool and chat messages --> 
+	<Extern class="com.ganteater.ae.processor.OpenAI" model="gpt-5-mini" apiKey="$var{OPENAI_API_KEY}">
+		<!-- Define a function tool that returns mock weather info --> 
+		<Function name="get-weather" description="Get current weather for a city" type="object" return="weatherResult">
+			<property name="city" type="string" required="true" /> 
+			<Task>
+				<!-- Mock implementation: set weatherResult property --> 
+				<Var name="weatherResult">{ "city": "$var{city}", "forecast": "sunny" }</Var> 
+				<Out name="city" level="info" /> 
+				<Out name="weatherResult" level="info" /> 
+			</Task> 
+		</Function> 
+		<!-- Send chat messages to the model --> 
+		<Prompt name="openaiResponse">
+			<message role="system">You are a helpful assistant that can call function get-weather when asked.</message> 
+			<message role="user">What is the weather in Paris?</message> 
+		</Prompt> 
+		<!-- Output model response --> 
+		<Out name="openaiResponse" level="info" /> 
+	</Extern> 
+</Recipe> 
