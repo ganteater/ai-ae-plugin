@@ -35,3 +35,4 @@ The Anteater recipe is an XML file that calls processor command methods. It does
 	- `m`: for minutes, e.g. `timeout="2m"`;
 	- `s`: for seconds, e.g. `timeout="2s"`;
 	- no suffix: for milliseconds, e.g. `timeout="2"`.
+- If the command processor class is in the default package `com.ganteater.ae.processor`, you can omit this package name in the class attribute of the <Extern> tag.

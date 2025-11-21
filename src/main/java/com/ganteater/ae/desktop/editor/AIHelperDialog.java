@@ -87,26 +87,26 @@ public class AIHelperDialog extends HelperDialog {
 		perform.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				new Thread(() -> {
-					try {
-						perform.setEnabled(false);
-						perform.setText("Waiting for the response ...");
-						performRequest(client);
-						setVisible(false);
-
-					} finally {
-						perform.setText(REQUEST_BUTTON_TEXT);
-						perform.setEnabled(true);
-					}
-				}).start();
+				perform(client);
 			}
 		});
 
 		editor.addKeyListener(new KeyAdapter() {
 			@Override
 			public void keyPressed(KeyEvent e) {
-				if (e.getKeyCode() == KeyEvent.VK_ESCAPE) {
+				switch (e.getKeyCode()) {
+				case KeyEvent.VK_ESCAPE:
 					setVisible(false);
+					break;
+				case KeyEvent.VK_ENTER:
+					if (!e.isShiftDown()) {
+						perform(client);
+						e.consume();
+					} else {
+						editor.insert("\n", editor.getCaretPosition());
+					}
+
+					break;
 				}
 			}
 		});
@@ -121,6 +121,21 @@ public class AIHelperDialog extends HelperDialog {
 			}
 		});
 
+	}
+
+	private void perform(final OpenAIClient client) {
+		new Thread(() -> {
+			try {
+				perform.setEnabled(false);
+				perform.setText("Waiting for the response ...");
+				performRequest(client);
+				setVisible(false);
+
+			} finally {
+				perform.setText(REQUEST_BUTTON_TEXT);
+				perform.setEnabled(true);
+			}
+		}).start();
 	}
 
 	protected void performRequest(OpenAIClient client) {
