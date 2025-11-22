@@ -29,7 +29,7 @@ The **AI-AE-Plugin** is an Anteater plugin that introduces support for AI-powere
 			  <version>latest_version</version>
 		 </dependency>
 		 ```
-		[![Maven Central](https://img.shields.io/maven-central/v/com.ganteater.plugins/ai-ae-plugin.svg)](https://search.maven.org/artifact/com.ganteater.plugins/ai-ae-plugin)
+		[![Maven Central](https://img.shields.io/maven-central/v/com.ganteater.plugins/ai-ae-plugin.svg)](https://central.sonatype.com/artifact/com.ganteater.plugins/ai-ae-plugin)
 4. Install other plugins (optional), see: [Anteater Plugins](https://ganteater.com/ae-plugins/index.html)
 3. OpenAI API Key:
 	- Ensure you have a valid OpenAI API key.[^2]
