@@ -83,7 +83,6 @@ public class AICodeHelper extends CodeHelper {
 	private void fillResources(StringBuilder builder, CommandInfo cominfo) {
 		String[] resources = cominfo.getResources();
 		if (resources != null && resources.length > 0) {
-			builder.append("#### Additional Resources\n\n");
 			for (String resource : resources) {
 				try {
 					String reference = AEUtils.loadResource(resource);
