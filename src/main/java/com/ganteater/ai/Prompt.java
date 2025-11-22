@@ -55,7 +55,7 @@ public class Prompt {
 		StringBuilder promptBuilder = new StringBuilder();
 
 		if (context != null && !context.isEmpty()) {
-			promptBuilder.append("# Context\n").append(context).append(PARAGRAPH);
+			promptBuilder.append(context).append(PARAGRAPH);
 		}
 		if (instruction != null && !instruction.isEmpty()) {
 			promptBuilder.append("# Instruction:\n").append(instruction).append(PARAGRAPH);
@@ -65,6 +65,7 @@ public class Prompt {
 		}
 		if (source != null && !source.isEmpty()) {
 			promptBuilder.append("# Source\n").append("```" + sourceType + "\n" + source + "\n```").append(PARAGRAPH);
+			promptBuilder.append(markerInstraction()).append(PARAGRAPH);
 		}
 		if (examples != null && !examples.isEmpty()) {
 			promptBuilder.append("# Examples\n").append(examples).append(PARAGRAPH);
@@ -76,10 +77,21 @@ public class Prompt {
 		return promptBuilder.toString();
 	}
 
+	private String markerInstraction() {
+		StringBuilder markerInstraction = new StringBuilder(
+				"In the source can be used following special markers:" + PARAGRAPH);
+		Marker[] values = Marker.values();
+		for (int i = 0; i < values.length; i++) {
+			markerInstraction.append(i + ". " + values[i].toString() + " - " + values[i].getDescription() + "\n");
+		}
+
+		return markerInstraction.toString();
+	}
+
 	// Builder Class
 	public static class Builder {
 		private StringBuilder context = new StringBuilder();
-		private String instruction = markerInstraction();
+		private String instruction;
 		private String examples;
 		private String input;
 		private String hint;
@@ -87,17 +99,6 @@ public class Prompt {
 		private String sourceType = "";
 
 		public Builder() {
-		}
-
-		private String markerInstraction() {
-			StringBuilder markerInstraction = new StringBuilder(
-					"In the source can be used following special markers:" + PARAGRAPH);
-			Marker[] values = Marker.values();
-			for (int i = 0; i < values.length; i++) {
-				markerInstraction.append(i + ". " + values[i].toString() + " - " + values[i].getDescription() + "\n");
-			}
-
-			return markerInstraction.toString();
 		}
 
 		public Builder context(String context) {

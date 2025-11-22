@@ -13,7 +13,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import javax.swing.BorderFactory;
@@ -47,22 +49,22 @@ import com.openai.models.responses.Response;
 import com.openai.models.responses.ResponseCreateParams;
 import com.openai.models.responses.ResponseCreateParams.Builder;
 import com.openai.models.responses.ResponseCreateParams.Input;
-import com.openai.models.responses.ResponseInputItem.Message;
 import com.openai.models.responses.ResponseFunctionToolCall;
 import com.openai.models.responses.ResponseInputItem;
+import com.openai.models.responses.ResponseInputItem.Message;
 import com.openai.models.responses.ResponseOutputMessage.Content;
 import com.openai.models.responses.ResponseUsage;
 
 public class AIHelperDialog extends HelperDialog {
 
 	private static final String REQUEST_BUTTON_TEXT = "Perform";
-
-	private JTextArea editor = new JTextArea();
-	private String generalInfo;
-
-	private JButton perform = new JButton(REQUEST_BUTTON_TEXT);
+	private static Map<String, ResponseInputItem> contextMap = new LinkedHashMap<>();
 
 	private ILogger log;
+
+	private JTextArea editor = new JTextArea();
+
+	private JButton perform = new JButton(REQUEST_BUTTON_TEXT);
 
 	public AIHelperDialog(final CodeHelper codeHelper, final OpenAIClient client) {
 		super(codeHelper);
@@ -79,7 +81,13 @@ public class AIHelperDialog extends HelperDialog {
 		comp.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
 		comp.setPreferredSize(new Dimension(300, 150));
 
-		this.generalInfo = loadResource("/generalInfo.md");
+		String generalInfo = loadResource("/generalInfo.md");
+		addContextInput("GeneralInfo", generalInfo);
+
+		String appendSystemVariablesContext = getCodeHelper().appendSystemVariablesContext();
+		addContextInput("SystemVariablesContext", appendSystemVariablesContext);
+
+		addProcessorInfo(BaseProcessor.class.getSimpleName());
 
 		getContentPane().add(comp, BorderLayout.CENTER);
 		getContentPane().add(perform, BorderLayout.SOUTH);
@@ -105,7 +113,6 @@ public class AIHelperDialog extends HelperDialog {
 					} else {
 						editor.insert("\n", editor.getCaretPosition());
 					}
-
 					break;
 				}
 			}
@@ -125,6 +132,17 @@ public class AIHelperDialog extends HelperDialog {
 
 	private void perform(final OpenAIClient client) {
 		new Thread(() -> {
+			AICodeHelper aiHelper = getCodeHelper();
+			TextEditor textEditor = getCodeHelper().getEditor();
+
+			Collection<String> processors = getProcessorNames(textEditor.getText());
+			for (String processorName : processors) {
+				if (!contextMap.containsKey(processorName)) {
+					String processorInfo = aiHelper.appendExampleContext(processorName);
+					addContextInput(processorName, processorInfo);
+				}
+			}
+
 			try {
 				perform.setEnabled(false);
 				perform.setText("Waiting for the response ...");
@@ -138,12 +156,41 @@ public class AIHelperDialog extends HelperDialog {
 		}).start();
 	}
 
+	private void addContextInput(String name, String processorInfo) {
+		Message message = com.openai.models.responses.ResponseInputItem.Message
+				.builder()
+				.role(com.openai.models.responses.ResponseInputItem.Message.Role.USER)
+				.addInputTextContent(processorInfo)
+				.build();
+
+		contextMap.put(name, ResponseInputItem.ofMessage(message));
+	}
+
 	protected void performRequest(OpenAIClient client) {
 		try {
-			String input = getInput();
-			debug(new AELogRecord(input, "md", "Input"));
+			TextEditor textEditor = getCodeHelper().getEditor();
+
+			int caretPosition = textEditor.getCaretPosition();
+			int selectionStart = textEditor.getSelectionStart();
+			int selectionEnd = textEditor.getSelectionEnd();
 
 			List<ResponseInputItem> inputs = new ArrayList<>();
+
+			Collection<ResponseInputItem> values = contextMap.values();
+			for (ResponseInputItem processorInfo : values) {
+				String text = processorInfo.message().get().content().get(0).inputText().get().text();
+				debug(new AELogRecord(text, "md", "Input"));
+				inputs.add(processorInfo);
+			}
+
+			String text = textEditor.getText();
+			Prompt prompt = new Prompt.Builder()
+					.source(text, "xml", caretPosition, selectionStart, selectionEnd)
+					.input(editor.getText())
+					.build();
+
+			String input = prompt.buildPrompt();
+			debug(new AELogRecord(input, "md", "Input"));
 
 			Message message = com.openai.models.responses.ResponseInputItem.Message
 					.builder()
@@ -259,27 +306,6 @@ public class AIHelperDialog extends HelperDialog {
 		}
 	}
 
-	private String getInput() {
-		TextEditor textEditor = getCodeHelper().getEditor();
-
-		int caretPosition = textEditor.getCaretPosition();
-		int selectionStart = textEditor.getSelectionStart();
-		int selectionEnd = textEditor.getSelectionEnd();
-		String text = textEditor.getText();
-
-		Prompt.Builder promptBuilder = new Prompt.Builder();
-		promptBuilder.context(generalInfo);
-		promptBuilder.source(text, "xml", caretPosition, selectionStart, selectionEnd)
-				.input(editor.getText());
-
-		AICodeHelper aiHelper = getCodeHelper();
-		Collection<String> processors = getProcessorNames(textEditor);
-		aiHelper.appendExampleContext(promptBuilder, processors);
-		aiHelper.appendSystemVariablesContext(promptBuilder);
-
-		return promptBuilder.build().buildPrompt();
-	}
-
 	private void debug(Object message) {
 		if (getCodeHelper().isDebug()) {
 			getLog().debug(message);
@@ -297,11 +323,10 @@ public class AIHelperDialog extends HelperDialog {
 		}
 	}
 
-	public Collection<String> getProcessorNames(TextEditor textEditor) {
+	public Collection<String> getProcessorNames(String textEditor) {
 		List<String> processorClassList = new ArrayList<>();
-		processorClassList.add(BaseProcessor.class.getSimpleName());
 		try {
-			Node taskNode = new EasyParser().getObject(textEditor.getRecipePanel().getEditor().getText());
+			Node taskNode = new EasyParser().getObject(textEditor);
 			if (taskNode != null) {
 				Node[] nodes = taskNode.getNodes("Extern");
 				for (Node node : nodes) {
@@ -361,15 +386,18 @@ public class AIHelperDialog extends HelperDialog {
 		protected AIHelperDialog helperDialog;
 
 		public String execute() {
-			List<String> processorClassNames = new ArrayList<>();
-			processorClassNames.add(name);
-
-			com.ganteater.ai.Prompt.Builder promptBuilder = new Prompt.Builder();
-			helperDialog.getCodeHelper().appendExampleContext(promptBuilder, processorClassNames);
-			String text = promptBuilder.build().buildPrompt();
-			helperDialog.debug(new AELogRecord(text, "md", "GetProcessorInfo:" + name));
-			return text;
+			String processorInfo = helperDialog.addProcessorInfo(name);
+			helperDialog.debug(new AELogRecord(processorInfo, "md", "Input"));
+			return processorInfo;
 		}
+	}
+
+	public String addProcessorInfo(String name) {
+		String processorInfo = getCodeHelper().appendExampleContext(name);
+		com.ganteater.ai.Prompt.Builder promptBuilder = new Prompt.Builder();
+		String text = promptBuilder.context(processorInfo).build().buildPrompt();
+		addContextInput(name, text);
+		return text;
 	}
 
 }

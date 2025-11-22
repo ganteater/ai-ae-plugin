@@ -1,7 +1,6 @@
 package com.ganteater.ae.desktop.editor;
 
 import java.io.IOException;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -12,7 +11,6 @@ import com.ganteater.ae.processor.BaseProcessor;
 import com.ganteater.ae.processor.Processor;
 import com.ganteater.ae.processor.annotation.CommandInfo;
 import com.ganteater.ae.util.xml.easyparser.Node;
-import com.ganteater.ai.Prompt.Builder;
 import com.openai.client.OpenAIClient;
 import com.openai.client.okhttp.OpenAIOkHttpClient;
 
@@ -44,51 +42,50 @@ public class AICodeHelper extends CodeHelper {
 		super.setDefaultDialog(aiHelperDialog);
 	}
 
-	public void appendExampleContext(Builder contextBuilder, Collection<String> processorClassNameList) {
-		contextBuilder.context("# Commands");
+	public String appendExampleContext(String processorName) {
+		StringBuilder contextBuilder = new StringBuilder();
+		String processorClassName = Processor.getFullClassName(processorName);
 
-		for (String processorName : processorClassNameList) {
-			String processorClassName = Processor.getFullClassName(processorName);
+		contextBuilder.append("# Command Processor: " + processorName + "\n\n");
+		try {
+			@SuppressWarnings("unchecked")
+			Class<BaseProcessor> processorClass = (Class<BaseProcessor>) Class.forName(processorClassName);
+			contextBuilder.append("Fully qualified class name: " + processorClass.getName() + "\n\n");
 
-			contextBuilder.context("## Command Processor: " + processorName);
-			try {
-				@SuppressWarnings("unchecked")
-				Class<BaseProcessor> processorClass = (Class<BaseProcessor>) Class.forName(processorClassName);
-				contextBuilder.context("Fully qualified class name: " + processorClass.getName());
+			List<CommandInfo> commandList = super.getCommandList(null, processorClass);
 
-				List<CommandInfo> commandList = super.getCommandList(null, processorClass);
-
-				for (CommandInfo cominfo : commandList) {
-					if (!cominfo.getName().equals("init")) {
-						contextBuilder.context("### Command `" + cominfo.getName() + "`");
-					} else {
-						contextBuilder.context("### Processor Initialization");
-					}
-					String description = cominfo.getDescription();
-					if (StringUtils.isNotEmpty(description)) {
-						contextBuilder.context("Description: " + description);
-					}
-					fillExampes(contextBuilder, cominfo);
+			for (CommandInfo cominfo : commandList) {
+				if (!cominfo.getName().equals("init")) {
+					contextBuilder.append("## Command `" + cominfo.getName() + "`n\n");
+				} else {
+					contextBuilder.append("## Processor Initialization\n\n");
 				}
-			} catch (ClassNotFoundException e) {
-				contextBuilder.context("## Command Processor: " + processorName);
-				contextBuilder
-						.context("This processor can not be used because the processor class: " + processorClassName
-								+ " not found. If user tray to use it, need to show the error.");
+				String description = cominfo.getDescription();
+				if (StringUtils.isNotEmpty(description)) {
+					contextBuilder.append("Description: " + description + "\n\n");
+				}
+				fillExampes(contextBuilder, cominfo);
 			}
+		} catch (ClassNotFoundException e) {
+			contextBuilder.append("# Command Processor: " + processorName + "\n\n");
+			contextBuilder
+					.append("This processor can not be used because the processor class: " + processorClassName
+							+ " not found. If user tray to use it, need to show the error.\n\n");
 		}
+
+		return contextBuilder.toString();
 	}
 
-	private void fillExampes(Builder contextBuilder, CommandInfo cominfo) {
+	private void fillExampes(StringBuilder builder, CommandInfo cominfo) {
 		List<String> examples = cominfo.getExamples();
 		if (!examples.isEmpty()) {
-			contextBuilder.context("#### Examples");
+			builder.append("Examples:\n\n");
 			int i = 1;
 			StringBuilder examplesInfo = new StringBuilder();
 			for (String example : examples) {
 				appendExample(examplesInfo, i++, example);
 			}
-			contextBuilder.context(examplesInfo.toString());
+			builder.append(examplesInfo.toString());
 		}
 	}
 
@@ -111,9 +108,10 @@ public class AICodeHelper extends CodeHelper {
 		}
 	}
 
-	public void appendSystemVariablesContext(Builder promptBuilder) {
+	public String appendSystemVariablesContext() {
 		Map<String, Object> startVariables = getRecipePanel().getManager().getSystemVariables();
-		promptBuilder.context("# System Variable Names");
+		StringBuilder builder = new StringBuilder();
+		builder.append("# System Variable Names\n\n");
 
 		Set<String> keySet = startVariables.keySet();
 		int i = 1;
@@ -121,7 +119,8 @@ public class AICodeHelper extends CodeHelper {
 		for (String name : keySet) {
 			sysvarInfo.append((i++) + ". " + name + "\n");
 		}
-		promptBuilder.context(sysvarInfo.toString());
+		builder.append(sysvarInfo.toString() + "\n\n");
+		return builder.toString();
 	}
 
 	public String getChatModel() {
