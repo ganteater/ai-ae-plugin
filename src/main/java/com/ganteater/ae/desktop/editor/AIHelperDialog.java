@@ -37,6 +37,7 @@ import com.ganteater.ae.AELogRecord;
 import com.ganteater.ae.ILogger;
 import com.ganteater.ae.desktop.ui.OptionPane;
 import com.ganteater.ae.processor.BaseProcessor;
+import com.ganteater.ae.util.AEUtils;
 import com.ganteater.ae.util.xml.easyparser.EasyParser;
 import com.ganteater.ae.util.xml.easyparser.Node;
 import com.ganteater.ai.Marker;
@@ -81,8 +82,13 @@ public class AIHelperDialog extends HelperDialog {
 		comp.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
 		comp.setPreferredSize(new Dimension(300, 150));
 
-		String generalInfo = loadResource("/generalInfo.md");
-		addContextInput("GeneralInfo", generalInfo);
+		String generalInfo;
+		try {
+			generalInfo = AEUtils.loadResource("/generalInfo.md");
+			addContextInput("GeneralInfo", generalInfo);
+		} catch (Exception e) {
+			getLog().error("Resource: " + "/generalInfo.md" + " not found.", e);
+		}
 
 		String appendSystemVariablesContext = getCodeHelper().appendSystemVariablesContext();
 		addContextInput("SystemVariablesContext", appendSystemVariablesContext);
@@ -208,23 +214,27 @@ public class AIHelperDialog extends HelperDialog {
 			Response response = client.responses().create(builder.build());
 			logUsage(response.usage());
 
+			List<ResponseInputItem> funcInputs = new ArrayList<>();
+			List<ResponseInputItem> reasoningInputs = new ArrayList<>();
 			response.output().forEach(item -> {
 				if (item.isFunctionCall()) {
 					ResponseFunctionToolCall functionCall = item.asFunctionCall();
 
-					inputs.add(ResponseInputItem.ofFunctionCall(functionCall));
-					inputs.add(ResponseInputItem.ofFunctionCallOutput(ResponseInputItem.FunctionCallOutput.builder()
+					funcInputs.add(ResponseInputItem.ofFunctionCall(functionCall));
+					funcInputs.add(ResponseInputItem.ofFunctionCallOutput(ResponseInputItem.FunctionCallOutput.builder()
 							.callId(functionCall.callId())
 							.outputAsJson(callFunction(functionCall, this))
 							.build()));
 				}
 				if (item.isReasoning()) {
 					ResponseInputItem reasoning = ResponseInputItem.ofReasoning(item.asReasoning());
-					inputs.add(reasoning);
+					reasoningInputs.add(reasoning);
 				}
 			});
 
-			if (!inputs.isEmpty()) {
+			if (!funcInputs.isEmpty()) {
+				inputs.addAll(reasoningInputs);
+				inputs.addAll(inputs);
 				builder.input(ResponseCreateParams.Input.ofResponse(inputs));
 				response = client.responses().create(builder.build());
 				logUsage(response.usage());
@@ -343,16 +353,6 @@ public class AIHelperDialog extends HelperDialog {
 
 	public Object getProcessorDescription(Object processorName) {
 		return null;
-	}
-
-	public String loadResource(String name) {
-		String result = null;
-		try (InputStream is = AIHelperDialog.class.getResourceAsStream(name)) {
-			result = IOUtils.toString(is);
-		} catch (IOException e) {
-			getLog().error("Resource: " + name + " not found.", e);
-		}
-		return result;
 	}
 
 	private ILogger getLog() {

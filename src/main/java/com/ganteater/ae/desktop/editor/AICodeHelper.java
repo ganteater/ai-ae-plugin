@@ -10,6 +10,7 @@ import org.apache.commons.lang.StringUtils;
 import com.ganteater.ae.processor.BaseProcessor;
 import com.ganteater.ae.processor.Processor;
 import com.ganteater.ae.processor.annotation.CommandInfo;
+import com.ganteater.ae.util.AEUtils;
 import com.ganteater.ae.util.xml.easyparser.Node;
 import com.openai.client.OpenAIClient;
 import com.openai.client.okhttp.OpenAIOkHttpClient;
@@ -56,16 +57,19 @@ public class AICodeHelper extends CodeHelper {
 
 			for (CommandInfo cominfo : commandList) {
 				if (!cominfo.getName().equals("init")) {
-					contextBuilder.append("## Command `" + cominfo.getName() + "`n\n");
+					contextBuilder.append("### Command `" + cominfo.getName() + "`\n\n");
 				} else {
-					contextBuilder.append("## Processor Initialization\n\n");
+					contextBuilder.append("### Processor Initialization\n\n");
 				}
 				String description = cominfo.getDescription();
 				if (StringUtils.isNotEmpty(description)) {
 					contextBuilder.append("Description: " + description + "\n\n");
 				}
 				fillExampes(contextBuilder, cominfo);
+
+				fillResources(contextBuilder, cominfo);
 			}
+
 		} catch (ClassNotFoundException e) {
 			contextBuilder.append("# Command Processor: " + processorName + "\n\n");
 			contextBuilder
@@ -74,6 +78,22 @@ public class AICodeHelper extends CodeHelper {
 		}
 
 		return contextBuilder.toString();
+	}
+
+	private void fillResources(StringBuilder builder, CommandInfo cominfo) {
+		String[] resources = cominfo.getResources();
+		if (resources != null && resources.length > 0) {
+			builder.append("#### Additional Resources\n\n");
+			for (String resource : resources) {
+				try {
+					String reference = AEUtils.loadResource(resource);
+					builder.append(reference);
+				} catch (Exception e) {
+					getRecipePanel().getLogger().error("Resource: " + resource + " not found.");
+				}
+			}
+			builder.append("\n\n");
+		}
 	}
 
 	private void fillExampes(StringBuilder builder, CommandInfo cominfo) {
@@ -86,6 +106,7 @@ public class AICodeHelper extends CodeHelper {
 				appendExample(examplesInfo, i++, example);
 			}
 			builder.append(examplesInfo.toString());
+			builder.append("\n\n");
 		}
 	}
 
