@@ -68,20 +68,20 @@ public class OpenAI extends BaseProcessor {
 			"<Prompt name='type:property'><message role='enum:user|system|developer'>...</message></Messages>" })
 	public void runCommandPrompt(Node action) throws CommandException {
 		String name = action.getAttribute("name");
-		ArrayList<ResponseInputItem> arrayList = new ArrayList<ResponseInputItem>();
+		ArrayList<ResponseInputItem> inputs = new ArrayList<ResponseInputItem>();
 
 		for (Node node : action) {
 			switch (node.getTag()) {
 			case "message":
 				String innerText = node.getInnerText();
 				Message message = message(innerText, attr(node, "role", DEFAULT_ROLE));
-				arrayList.add(ResponseInputItem.ofMessage(message));
+				inputs.add(ResponseInputItem.ofMessage(message));
 				break;
 
 			case "$Text":
 				innerText = action.getInnerText();
 				message = message(innerText, attr(node, "role", DEFAULT_ROLE));
-				arrayList.add(ResponseInputItem.ofMessage(message));
+				inputs.add(ResponseInputItem.ofMessage(message));
 				break;
 
 			default:
@@ -89,25 +89,26 @@ public class OpenAI extends BaseProcessor {
 			}
 		}
 
-		Builder paramsBuilder = ResponseCreateParams.builder()
+		Builder builder = ResponseCreateParams.builder()
 				.model(chatModel)
-				.input(Input.ofResponse(arrayList));
+				.input(Input.ofResponse(inputs));
 
 		if (!toolsMap.isEmpty()) {
-			paramsBuilder.tools(new ArrayList<Tool>(toolsMap.keySet()));
+			builder.tools(new ArrayList<Tool>(toolsMap.keySet()));
 		}
 
-		Response response = client.responses().create(paramsBuilder.build());
+		Response response = client.responses().create(builder.build());
 
-		List<ResponseInputItem> inputs = new ArrayList<>();
+		List<ResponseInputItem> funcInputs = new ArrayList<>();
+		List<ResponseInputItem> reasoningInputs = new ArrayList<>();
 		response.output().forEach(item -> {
 			if (item.isFunctionCall()) {
 				ResponseFunctionToolCall functionCall = item.asFunctionCall();
 
-				inputs.add(ResponseInputItem.ofFunctionCall(functionCall));
+				funcInputs.add(ResponseInputItem.ofFunctionCall(functionCall));
 				try {
 					Object callFunction = ObjectUtils.defaultIfNull(callFunction(functionCall), StringUtils.EMPTY);
-					inputs.add(ResponseInputItem.ofFunctionCallOutput(ResponseInputItem.FunctionCallOutput.builder()
+					funcInputs.add(ResponseInputItem.ofFunctionCallOutput(ResponseInputItem.FunctionCallOutput.builder()
 							.callId(functionCall.callId())
 							.outputAsJson(callFunction)
 							.build()));
@@ -118,13 +119,15 @@ public class OpenAI extends BaseProcessor {
 			}
 			if (item.isReasoning()) {
 				ResponseInputItem reasoning = ResponseInputItem.ofReasoning(item.asReasoning());
-				inputs.add(reasoning);
+				reasoningInputs.add(reasoning);
 			}
 		});
-
-		if (!inputs.isEmpty()) {
-			paramsBuilder.input(ResponseCreateParams.Input.ofResponse(inputs));
-			response = client.responses().create(paramsBuilder.build());
+		
+		if (!funcInputs.isEmpty()) {
+			inputs.addAll(reasoningInputs);
+			inputs.addAll(funcInputs);
+			builder.input(ResponseCreateParams.Input.ofResponse(inputs));
+			response = client.responses().create(builder.build());
 		}
 
 		setVariable(name, response);

@@ -9,8 +9,6 @@ import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
@@ -25,7 +23,6 @@ import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.SwingUtilities;
 
-import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 
 import com.fasterxml.jackson.annotation.JsonClassDescription;
@@ -234,7 +231,7 @@ public class AIHelperDialog extends HelperDialog {
 
 			if (!funcInputs.isEmpty()) {
 				inputs.addAll(reasoningInputs);
-				inputs.addAll(inputs);
+				inputs.addAll(funcInputs);
 				builder.input(ResponseCreateParams.Input.ofResponse(inputs));
 				response = client.responses().create(builder.build());
 				logUsage(response.usage());
