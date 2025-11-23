@@ -162,7 +162,7 @@ public class AIHelperDialog extends HelperDialog {
 	private void addContextInput(String name, String processorInfo) {
 		Message message = com.openai.models.responses.ResponseInputItem.Message
 				.builder()
-				.role(com.openai.models.responses.ResponseInputItem.Message.Role.USER)
+				.role(com.openai.models.responses.ResponseInputItem.Message.Role.SYSTEM)
 				.addInputTextContent(processorInfo)
 				.build();
 

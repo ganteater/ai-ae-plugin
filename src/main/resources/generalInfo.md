@@ -22,17 +22,27 @@ The Anteater recipe is an XML file that calls processor command methods. It does
 - Use XML comments to display messages, e.g., `<!-- the message -->`.
 - The response should contain recipe XML code only.
 - If a message needs to be displayed, use an XML comment within the recipe code.
-- Replace the `type:` prefix in attributes with an appropriate value that matches its intended purpose. Example: `name="type:property"` ? Replace `type:` with the correct value.
 - Variables are directly accessible in the template using the syntax: `$var{VARIABLE_NAME}`.
 - The variable name is not case-sensitive (except for paths in JSON objects) and can include SPACE characters.
 - The variable name must have a human-readable meaning and be displayed in the message dialog box.
-- The attribute time type `type:time` can have suffix:
-	- `Y`: for years, e.g. `timeout="2Y"`;
-	- `M`: for month, e.g. `timeout="2M"`;
-	- `w`: for weeks, e.g. `timeout="2w"`;
-	- `d`: for days, e.g. `timeout="2d"`;
-	- `h`: for hours, e.g. `timeout="2h"`;
-	- `m`: for minutes, e.g. `timeout="2m"`;
-	- `s`: for seconds, e.g. `timeout="2s"`;
-	- no suffix: for milliseconds, e.g. `timeout="2"`.
 - If the command processor class is in the default package `com.ganteater.ae.processor`, you can omit this package name in the class attribute of the <Extern> tag.
+- Attribute values for command usage patterns may specify the type of values to use. An attribute's value type begins with the `type:` prefix or `enum`. Here are the rules to apply to generating values based on the specified type:
+	- type:property - Refers to a property name within the configuration or environment metadata. Values are interpreted as references to existing properties.
+	- type:string - Indicates a textual value. Any sequence of characters is allowed without restrictions.
+	- type:path - Specifies a file system path. Values should be a valid file or directory path, either relative or absolute, depending on the context.
+	- type:integer - Requires a numeric value that is an integer. Values are parsed as whole numbers without fractional parts.
+	- type:regex - Expects a valid regular expression pattern. Values must conform to standard regex syntax for pattern matching.
+	- type:boolean - Accepts logical values of `true` or `false`. Case-insensitive variations such as `True` or `FALSE` are also acceptable.
+	- type:time - Represents a time, supported suffixes:
+		- `Y`: for years, e.g. `timeout="2Y"`;
+		- `M`: for month, e.g. `timeout="2M"`;
+		- `w`: for weeks, e.g. `timeout="2w"`;
+		- `d`: for days, e.g. `timeout="2d"`;
+		- `h`: for hours, e.g. `timeout="2h"`;
+		- `m`: for minutes, e.g. `timeout="2m"`;
+		- `s`: for seconds, e.g. `timeout="2s"`;
+		- no suffix: for milliseconds, e.g. `timeout="2"`.
+	- type:url - Requires a valid URL format, including the scheme (`http`, `https`) and domain.
+	- type:recipe - Refers to a specific Anteater recipe by name or path. Values indicate recipe identifiers for reference.
+	- enum: - Specifies a predefined enumeration of values. 
+		Only the listed parameters are valid values for the attribute, for example, for `enum:a|b|c` one of the following values should be used: `a`, `b`, `c`.
