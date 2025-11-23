@@ -7,15 +7,14 @@
 	<parent>
 		<groupId>com.ganteater.plugins</groupId>
 		<artifactId>ae-plugins</artifactId>
-		<version>1.2.5</version>
+		<version>1.2.6-SNAPSHOT</version>
 		<relativePath></relativePath>
 	</parent>
 
-	<version>1.2.5-SNAPSHOT</version>
 	<artifactId>ai-ae-plugin</artifactId>
 	<name>AI Anteater Plugin</name>
 	<description>Module provides anteater plugin for AI.</description>
-	<url>https://github.com/ganteater/ai-ae-plugin</url>
+	<url>https://ganteater.com/ae-plugins</url>
 
 	<dependencies>
 		<dependency>
@@ -35,7 +34,7 @@
 						<dependency>
 							<groupId>com.ganteater.plugins</groupId>
 							<artifactId>web-ae-plugin</artifactId>
-							<version>1.2.4</version>
+							<version>1.2.5</version>
 						</dependency>
 						<dependency>
 							<groupId>com.formdev</groupId>
