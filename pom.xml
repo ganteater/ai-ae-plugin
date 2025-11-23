@@ -11,6 +11,7 @@
 		<relativePath></relativePath>
 	</parent>
 
+	<version>1.2.5-SNAPSHOT</version>
 	<artifactId>ai-ae-plugin</artifactId>
 	<name>AI Anteater Plugin</name>
 	<description>Module provides anteater plugin for AI.</description>
