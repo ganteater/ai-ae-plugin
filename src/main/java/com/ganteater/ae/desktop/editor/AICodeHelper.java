@@ -7,8 +7,8 @@ import java.util.Set;
 
 import org.apache.commons.lang.StringUtils;
 
-import com.ganteater.ae.processor.BaseProcessor;
 import com.ganteater.ae.processor.Processor;
+import com.ganteater.ae.processor.annotation.CommandDescription;
 import com.ganteater.ae.processor.annotation.CommandInfo;
 import com.ganteater.ae.util.AEUtils;
 import com.ganteater.ae.util.xml.easyparser.Node;
@@ -29,7 +29,6 @@ public class AICodeHelper extends CodeHelper {
 		Node editorNode = recipeEditor.getEditor().getEditorNode();
 
 		chatModel = StringUtils.defaultIfEmpty(taskProcessor.attr(editorNode, "model"), "gpt-5-mini");
-
 		debug = Boolean.parseBoolean(taskProcessor.attr(editorNode, "debug", "false"));
 
 		String apiKey = taskProcessor.attr(editorNode, "apiKey");
@@ -43,38 +42,37 @@ public class AICodeHelper extends CodeHelper {
 		super.setDefaultDialog(aiHelperDialog);
 	}
 
-	public String appendExampleContext(String processorName) {
+	public String appendProcessorInfo(Class<?> clazz) {
 		StringBuilder contextBuilder = new StringBuilder();
-		String processorClassName = Processor.getFullClassName(processorName);
 
-		contextBuilder.append("# Command Processor: " + processorName + "\n\n");
-		try {
-			@SuppressWarnings("unchecked")
-			Class<BaseProcessor> processorClass = (Class<BaseProcessor>) Class.forName(processorClassName);
-			contextBuilder.append("Fully qualified class name: " + processorClass.getName() + "\n\n");
+		contextBuilder.append("# Command Processor: " + clazz + "\n\n");
+		List<CommandInfo> commandList = super.getCommandList(null, clazz);
 
-			List<CommandInfo> commandList = super.getCommandList(null, processorClass);
-
-			for (CommandInfo cominfo : commandList) {
-				if (!cominfo.getName().equals("init")) {
-					contextBuilder.append("### Command `" + cominfo.getName() + "`\n\n");
-				} else {
-					contextBuilder.append("### Processor Initialization\n\n");
-				}
-				String description = cominfo.getDescription();
-				if (StringUtils.isNotEmpty(description)) {
-					contextBuilder.append("Description: " + description + "\n\n");
-				}
-				fillExampes(contextBuilder, cominfo);
-
-				fillResources(contextBuilder, cominfo);
+		for (CommandInfo cominfo : commandList) {
+			if (!cominfo.getName().equals("init")) {
+				contextBuilder.append("### Command `" + cominfo.getName() + "`\n\n");
+			} else {
+				contextBuilder.append("### Processor Initialization\n\n");
 			}
+			String description = cominfo.getDescription();
+			if (StringUtils.isNotEmpty(description)) {
+				contextBuilder.append("Description: " + description + "\n\n");
+			}
+			fillExampes(contextBuilder, cominfo);
+			fillResources(contextBuilder, cominfo);
+		}
 
-		} catch (ClassNotFoundException e) {
-			contextBuilder.append("# Command Processor: " + processorName + "\n\n");
-			contextBuilder
-					.append("This processor can not be used because the processor class: " + processorClassName
-							+ " not found. If user tray to use it, need to show the error.\n\n");
+		return contextBuilder.toString();
+	}
+
+	public String appendViewInfo(Class<?> clazz) {
+		StringBuilder contextBuilder = new StringBuilder();
+
+		contextBuilder.append("# View: " + clazz + "\n\n");
+
+		CommandDescription description = clazz.getAnnotation(CommandDescription.class);
+		if (description != null) {
+			contextBuilder.append(description.value());
 		}
 
 		return contextBuilder.toString();

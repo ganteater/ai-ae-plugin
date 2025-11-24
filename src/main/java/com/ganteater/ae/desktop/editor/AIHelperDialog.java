@@ -15,7 +15,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
@@ -26,19 +25,16 @@ import javax.swing.SwingUtilities;
 
 import org.apache.commons.lang.StringUtils;
 
-import com.fasterxml.jackson.annotation.JsonClassDescription;
-import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ganteater.ae.AELogRecord;
 import com.ganteater.ae.ILogger;
 import com.ganteater.ae.desktop.ui.OptionPane;
+import com.ganteater.ae.desktop.view.View;
 import com.ganteater.ae.processor.Processor;
 import com.ganteater.ae.util.AEUtils;
 import com.ganteater.ae.util.ClassUtils;
-import com.ganteater.ae.util.xml.easyparser.EasyParser;
-import com.ganteater.ae.util.xml.easyparser.Node;
 import com.ganteater.ai.Marker;
 import com.ganteater.ai.MarkerExtractResult;
 import com.ganteater.ai.Prompt;
@@ -62,17 +58,16 @@ public class AIHelperDialog extends HelperDialog {
 	private static Map<String, ResponseInputItem> contextMap = new LinkedHashMap<>();
 
 	private ILogger log;
-
 	private JTextArea editor = new JTextArea();
-
 	private JButton perform = new JButton(REQUEST_BUTTON_TEXT);
 
-	public AIHelperDialog(final CodeHelper codeHelper, final OpenAIClient client) {
+	public AIHelperDialog(final AICodeHelper codeHelper, final OpenAIClient client) {
 		super(codeHelper);
 
 		setAlwaysOnTop(true);
 		setUndecorated(true);
 
+		editor.setTabSize(2);
 		editor.setBorder(BorderFactory.createEmptyBorder(4, 4, 4, 4));
 		editor.setLineWrap(true);
 		editor.setWrapStyleWord(true);
@@ -95,7 +90,14 @@ public class AIHelperDialog extends HelperDialog {
 
 		List<Class<?>> processorClasses = ClassUtils.findAssignable(Processor.class);
 		for (Class<?> processorClass : processorClasses) {
-			addProcessorInfo(processorClass.getName());
+			String input = codeHelper.appendProcessorInfo(processorClass);
+			addContextInput(processorClass.getName(), input);
+		}
+
+		List<Class<?>> viewNames = ClassUtils.findAssignable(View.class);
+		for (Class<?> viewName : viewNames) {
+			String input = codeHelper.appendViewInfo(viewName);
+			addContextInput(viewName.getName(), input);
 		}
 
 		getContentPane().add(comp, BorderLayout.CENTER);
@@ -141,17 +143,6 @@ public class AIHelperDialog extends HelperDialog {
 
 	private void perform(final OpenAIClient client) {
 		new Thread(() -> {
-			AICodeHelper aiHelper = getCodeHelper();
-			TextEditor textEditor = getCodeHelper().getEditor();
-
-			Collection<String> processors = getProcessorNames(textEditor.getText());
-			for (String processorName : processors) {
-				if (!contextMap.containsKey(processorName)) {
-					String processorInfo = aiHelper.appendExampleContext(processorName);
-					addContextInput(processorName, processorInfo);
-				}
-			}
-
 			try {
 				perform.setEnabled(false);
 				perform.setText("Waiting for the response ...");
@@ -211,7 +202,6 @@ public class AIHelperDialog extends HelperDialog {
 
 			Builder builder = ResponseCreateParams.builder()
 					.model(getCodeHelper().getChatModel())
-					.addTool(GetProcessorInfo.class)
 					.input(Input.ofResponse(inputs));
 
 			Response response = client.responses().create(builder.build());
@@ -299,24 +289,6 @@ public class AIHelperDialog extends HelperDialog {
 		}
 	}
 
-	public Collection<String> getProcessorNames(String textEditor) {
-		List<String> processorClassList = new ArrayList<>();
-		try {
-			Node taskNode = new EasyParser().getObject(textEditor);
-			if (taskNode != null) {
-				Node[] nodes = taskNode.getNodes("Extern");
-				for (Node node : nodes) {
-					String processorClassName = node.getAttribute("class");
-					processorClassList.add(processorClassName);
-				}
-			}
-		} catch (Exception e) {
-			getLog().error("Recipe parsing failed.", e);
-		}
-
-		return processorClassList;
-	}
-
 	public Object getProcessorDescription(Object processorName) {
 		return null;
 	}
@@ -340,28 +312,6 @@ public class AIHelperDialog extends HelperDialog {
 	@Override
 	public AICodeHelper getCodeHelper() {
 		return (AICodeHelper) super.getCodeHelper();
-	}
-
-	@JsonClassDescription("Get help documentation about anteater command Processor.")
-	static class GetProcessorInfo {
-		@JsonPropertyDescription("The name of command processor.")
-		public String name;
-
-		protected AIHelperDialog helperDialog;
-
-		public String execute() {
-			String processorInfo = helperDialog.addProcessorInfo(name);
-			helperDialog.debug(new AELogRecord(processorInfo, "md", "Input"));
-			return processorInfo;
-		}
-	}
-
-	public String addProcessorInfo(String name) {
-		String processorInfo = getCodeHelper().appendExampleContext(name);
-		com.ganteater.ai.Prompt.Builder promptBuilder = new Prompt.Builder();
-		String text = promptBuilder.context(processorInfo).build().buildPrompt();
-		addContextInput(name, text);
-		return text;
 	}
 
 }
