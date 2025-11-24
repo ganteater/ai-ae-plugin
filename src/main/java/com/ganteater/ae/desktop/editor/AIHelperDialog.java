@@ -15,6 +15,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
@@ -33,8 +34,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ganteater.ae.AELogRecord;
 import com.ganteater.ae.ILogger;
 import com.ganteater.ae.desktop.ui.OptionPane;
-import com.ganteater.ae.processor.BaseProcessor;
+import com.ganteater.ae.processor.Processor;
 import com.ganteater.ae.util.AEUtils;
+import com.ganteater.ae.util.ClassUtils;
 import com.ganteater.ae.util.xml.easyparser.EasyParser;
 import com.ganteater.ae.util.xml.easyparser.Node;
 import com.ganteater.ai.Marker;
@@ -47,13 +49,14 @@ import com.openai.models.responses.Response;
 import com.openai.models.responses.ResponseCreateParams;
 import com.openai.models.responses.ResponseCreateParams.Builder;
 import com.openai.models.responses.ResponseCreateParams.Input;
-import com.openai.models.responses.ResponseFunctionToolCall;
 import com.openai.models.responses.ResponseInputItem;
 import com.openai.models.responses.ResponseInputItem.Message;
 import com.openai.models.responses.ResponseOutputMessage.Content;
 import com.openai.models.responses.ResponseUsage;
 
 public class AIHelperDialog extends HelperDialog {
+
+	private static final long serialVersionUID = 1L;
 
 	private static final String REQUEST_BUTTON_TEXT = "Perform";
 	private static Map<String, ResponseInputItem> contextMap = new LinkedHashMap<>();
@@ -90,7 +93,10 @@ public class AIHelperDialog extends HelperDialog {
 		String appendSystemVariablesContext = getCodeHelper().appendSystemVariablesContext();
 		addContextInput("SystemVariablesContext", appendSystemVariablesContext);
 
-		addProcessorInfo(BaseProcessor.class.getSimpleName());
+		List<Class<?>> processorClasses = ClassUtils.findAssignable(Processor.class);
+		for (Class<?> processorClass : processorClasses) {
+			addProcessorInfo(processorClass.getName());
+		}
 
 		getContentPane().add(comp, BorderLayout.CENTER);
 		getContentPane().add(perform, BorderLayout.SOUTH);
@@ -211,32 +217,6 @@ public class AIHelperDialog extends HelperDialog {
 			Response response = client.responses().create(builder.build());
 			logUsage(response.usage());
 
-			List<ResponseInputItem> funcInputs = new ArrayList<>();
-			List<ResponseInputItem> reasoningInputs = new ArrayList<>();
-			response.output().forEach(item -> {
-				if (item.isFunctionCall()) {
-					ResponseFunctionToolCall functionCall = item.asFunctionCall();
-
-					funcInputs.add(ResponseInputItem.ofFunctionCall(functionCall));
-					funcInputs.add(ResponseInputItem.ofFunctionCallOutput(ResponseInputItem.FunctionCallOutput.builder()
-							.callId(functionCall.callId())
-							.outputAsJson(callFunction(functionCall, this))
-							.build()));
-				}
-				if (item.isReasoning()) {
-					ResponseInputItem reasoning = ResponseInputItem.ofReasoning(item.asReasoning());
-					reasoningInputs.add(reasoning);
-				}
-			});
-
-			if (!funcInputs.isEmpty()) {
-				inputs.addAll(reasoningInputs);
-				inputs.addAll(funcInputs);
-				builder.input(ResponseCreateParams.Input.ofResponse(inputs));
-				response = client.responses().create(builder.build());
-				logUsage(response.usage());
-			}
-
 			response.output().forEach(item -> {
 				if (item.isMessage()) {
 					List<Content> content = item.asMessage().content();
@@ -247,17 +227,6 @@ public class AIHelperDialog extends HelperDialog {
 		} catch (RateLimitException e) {
 			OptionPane.showMessageDialog(getCodeHelper().getRecipePanel().getFrame(), e.getLocalizedMessage(),
 					"Rate Limit", JOptionPane.ERROR_MESSAGE);
-		}
-	}
-
-	private static Object callFunction(ResponseFunctionToolCall function, AIHelperDialog helperDialog) {
-		switch (function.name()) {
-		case "GetProcessorInfo":
-			GetProcessorInfo getProcessorInfo = function.arguments(GetProcessorInfo.class);
-			getProcessorInfo.helperDialog = helperDialog;
-			return getProcessorInfo.execute();
-		default:
-			throw new IllegalArgumentException("Unknown function: " + function.name());
 		}
 	}
 
@@ -359,8 +328,6 @@ public class AIHelperDialog extends HelperDialog {
 		}
 		return log;
 	}
-
-	private static final long serialVersionUID = 1L;
 
 	@Override
 	public void showDialog() {
