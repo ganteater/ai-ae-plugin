@@ -46,6 +46,11 @@ public class AICodeHelper extends CodeHelper {
 		StringBuilder contextBuilder = new StringBuilder();
 
 		contextBuilder.append("# Command Processor: " + clazz + "\n\n");
+		CommandDescription descriptionAnnotation = clazz.getAnnotation(CommandDescription.class);
+		if (descriptionAnnotation != null) {
+			contextBuilder.append(descriptionAnnotation.value() + "\n\n");
+		}
+
 		List<CommandInfo> commandList = super.getCommandList(null, clazz);
 
 		for (CommandInfo cominfo : commandList) {
@@ -72,7 +77,7 @@ public class AICodeHelper extends CodeHelper {
 
 		CommandDescription description = clazz.getAnnotation(CommandDescription.class);
 		if (description != null) {
-			contextBuilder.append(description.value());
+			contextBuilder.append(description.value() + "\n\n");
 		}
 
 		return contextBuilder.toString();
