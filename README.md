@@ -89,6 +89,8 @@ With this configuration, Anteater is ready to leverage AI capabilities for code 
 
 This feature simplifies the process of writing recipes and ensures accurate syntax and command usage.
 
+[![Video Title](https://img.youtube.com/vi/bt8eS8iDjsc/0.jpg)](https://www.youtube.com/watch?v=bt8eS8iDjsc)
+
 ## LLM Command Processors
 
 ### Command Processor: OpenAI
