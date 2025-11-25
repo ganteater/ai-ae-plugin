@@ -1,0 +1,22 @@
+<Recipe name="Load and Summarize Webpage">
+	<!-- Ask user for the webpage URL --> 
+	<Var name="URL" init="console" type="string" /> 
+	<!-- Ask user for the local output file path (will be created/overwritten) --> 
+	<Var name="Output File" init="console" type="path" /> 
+	<!-- Load the webpage content into variable 'pageContent' --> 
+	<Get name="pageContent" url="$var{URL}" timeout="10s" /> 
+	<!-- Use OpenAI processor to create a short summary. 
+	     The OpenAI commands are enclosed in Extern as they are not core processor commands. --> 
+	<Extern class="OpenAI" model="gpt-5-mini" apiKey="$var{OPENAI_API_KEY}">
+		<Prompt name="Summary">
+			<message role="user">Please provide a short (3-4 sentence) summary of the following webpage content:
+$var{pageContent}</message> 
+		</Prompt> 
+	</Extern> 
+	<!-- Output the summary to the console --> 
+	<Out name="Summary" level="info" /> 
+	<!-- Save the summary to the local file specified by the user --> 
+	<Out file="$var{Output File}">
+$var{Summary}
+	</Out> 
+</Recipe> 

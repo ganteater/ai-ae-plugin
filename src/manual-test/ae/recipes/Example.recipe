@@ -1,0 +1,47 @@
+<Recipe name="Example">
+	<!-- Example Anteater recipe demonstrating common commands --> 
+	<About>
+		<description>Demo: Var, Rnd, Table, Loop, Time, Calculate, If, Post, Out, Finally.</description> 
+	</About> 
+	<!-- Ensure cleanup/out is executed on exit --> 
+	<Finally>
+		<Out level="info">Recipe is exiting - performing cleanup.</Out> 
+	</Finally> 
+	<!-- Initialize variables --> 
+	<Var name="userId" value="user_1" description="User identifier" /> 
+	<Rnd name="sessionId" type="uuid" /> 
+	<Append name="userId" value="_app" /> 
+	<!-- Show key variables in a table --> 
+	<Table name="Current variables">
+		<var name="userId" value="$var{userId}" /> 
+		<var name="sessionId" value="$var{sessionId}" /> 
+	</Table> 
+	<!-- Prepare accumulator --> 
+	<Var name="sum" value="0" /> 
+	<!-- Measure time of the loop --> 
+	<Time name="loopTime" action="start" /> 
+	<Loop numbers="5" name="i">
+		<!-- Generate a random 3-digit number --> 
+		<Rnd name="randValue" symbols="3" type="number" /> 
+		<!-- Add to sum using Calculate (JEXL expression) --> 
+		<Calculate name="sum" expressions="$var{sum} + $var{randValue}" /> 
+		<Out level="info">Iteration $var{i}: $var{randValue} (running sum: $var{sum})</Out> 
+		<Wait delay="200" /> 
+	</Loop> 
+	<Time name="loopTime" action="stop" /> 
+	<Out name="loopTime" level="info">Loop duration: $var{loopTime}</Out> 
+	<!-- Final sum output --> 
+	<Out level="info">Final sum: $var{sum}</Out> 
+	<!-- Conditional branch based on sum --> 
+	<If expression="$var{sum} &gt; 100">
+		<Out level="info">Sum is greater than 100</Out> 
+		<Else>
+			<Out level="info">Sum is 100 or less</Out> 
+		</Else> 
+	</If> 
+	<!-- Post result to a test endpoint and show response --> 
+	<Post name="response" url="http://httpbin.org/post" body="$var{sum}" mediaType="text/plain" timeout="5s" /> 
+	<Out name="response" level="debug" /> 
+	<!-- End of recipe --> 
+	<!-- The variables $var{userId} and $var{sessionId} are available for further use --> 
+</Recipe> 
