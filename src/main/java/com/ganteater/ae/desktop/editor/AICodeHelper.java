@@ -57,9 +57,9 @@ public class AICodeHelper extends CodeHelper {
 			sections.add(descriptionAnnotation.value());
 		}
 
-		List<com.ganteater.ae.processor.annotation.CommandInfo> commandList = super.getCommandList(null, clazz);
+		List<com.ganteater.ae.processor.CommandInfo> commandList = super.getCommandList(null, clazz);
 		List<CommandInfo> commandInfoList = new ArrayList<CommandInfo>();
-		for (com.ganteater.ae.processor.annotation.CommandInfo cominfo : commandList) {
+		for (com.ganteater.ae.processor.CommandInfo cominfo : commandList) {
 			CommandInfo commandInfo = new CommandInfo();
 
 			if (!cominfo.getName().equals("init")) {
@@ -92,7 +92,7 @@ public class AICodeHelper extends CodeHelper {
 		return contextBuilder.toString();
 	}
 
-	private List<String> fillExampes(com.ganteater.ae.processor.annotation.CommandInfo cominfo) {
+	private List<String> fillExampes(com.ganteater.ae.processor.CommandInfo cominfo) {
 		List<String> sections = new ArrayList<>();
 		List<String> examples = cominfo.getExamples();
 		if (!examples.isEmpty()) {
