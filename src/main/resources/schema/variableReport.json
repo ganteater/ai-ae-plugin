@@ -1,0 +1,23 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"type": "object",
+	"title": "VariableReport",
+	"description": "Schema for the VariableReport object",
+	"properties": {
+		"scope": {
+			"type": "string",
+			"description": "The scope of the variable report."
+		},
+		"variables": {
+			"type": "array",
+			"description": "An array of variable names.",
+			"items": {
+				"type": "string"
+			}
+		}
+	},
+	"required": [
+		"scope",
+		"variableInfo"
+	]
+}

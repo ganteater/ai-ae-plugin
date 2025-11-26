@@ -20,7 +20,6 @@ The Anteater recipe is an XML file that calls processor command methods. It does
 - If the recipe code contains commands that are not specific to the core processor, ensure they are enclosed within the `Extern` tag.
 - If the `Extern` tag is missing, create it.
 - Use XML comments to display messages, e.g., `<!-- the message -->`.
-- The response should contain recipe XML code only.
 - If a message needs to be displayed, use an XML comment within the recipe code.
 - Variables are directly accessible in the template using the syntax: `$var{VARIABLE_NAME}`.
 - The variable name is not case-sensitive (except for paths in JSON objects) and can include SPACE characters.
@@ -46,3 +45,11 @@ The Anteater recipe is an XML file that calls processor command methods. It does
 	- type:recipe - Refers to a specific Anteater recipe by name or path. Values indicate recipe identifiers for reference.
 	- enum: - Specifies a predefined enumeration of values. 
 		Only the listed parameters are valid values for the attribute, for example, for `enum:a|b|c` one of the following values should be used: `a`, `b`, `c`.
+
+## Output Format
+
+Generate an output message in JSON format with the following fields:
+
+1. `generatedOutputRecipeCode`: The generated recipe code as a string.
+2. `caretPosition`: The caret position as an integer.
+3. `selection` (optional): Include `startPosition` and `endPosition` as integers only if a selection is required.

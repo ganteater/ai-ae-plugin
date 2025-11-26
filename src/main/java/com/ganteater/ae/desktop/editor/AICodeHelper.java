@@ -1,6 +1,7 @@
 package com.ganteater.ae.desktop.editor;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -9,16 +10,18 @@ import org.apache.commons.lang.StringUtils;
 
 import com.ganteater.ae.processor.Processor;
 import com.ganteater.ae.processor.annotation.CommandDescription;
-import com.ganteater.ae.processor.annotation.CommandInfo;
 import com.ganteater.ae.util.AEUtils;
 import com.ganteater.ae.util.xml.easyparser.Node;
+import com.ganteater.ai.model.CommandInfo;
+import com.ganteater.ai.model.CommandProcessorInfo;
+import com.ganteater.ai.model.VariableReport;
 import com.openai.client.OpenAIClient;
 import com.openai.client.okhttp.OpenAIOkHttpClient;
 
 public class AICodeHelper extends CodeHelper {
 
-	private String chatModel;
 	private boolean debug;
+	private String chatModel;
 
 	public AICodeHelper(TextEditor textEditor) throws IOException, IllegalAccessException {
 		super(textEditor);
@@ -42,32 +45,38 @@ public class AICodeHelper extends CodeHelper {
 		super.setDefaultDialog(aiHelperDialog);
 	}
 
-	public String appendProcessorInfo(Class<?> clazz) {
-		StringBuilder contextBuilder = new StringBuilder();
+	public CommandProcessorInfo getProcessorInfo(Class<?> clazz) {
+		CommandProcessorInfo info = new CommandProcessorInfo();
 
-		contextBuilder.append("# Command Processor: " + clazz + "\n\n");
+		info.setName("Command Processor: `" + clazz.getSimpleName() + "`");
+		info.setClass_(clazz.getName());
+
 		CommandDescription descriptionAnnotation = clazz.getAnnotation(CommandDescription.class);
 		if (descriptionAnnotation != null) {
-			contextBuilder.append(descriptionAnnotation.value() + "\n\n");
+			ArrayList<Object> sections = new ArrayList<Object>();
+			sections.add(descriptionAnnotation.value());
 		}
 
-		List<CommandInfo> commandList = super.getCommandList(null, clazz);
+		List<com.ganteater.ae.processor.annotation.CommandInfo> commandList = super.getCommandList(null, clazz);
+		List<CommandInfo> commandInfoList = new ArrayList<CommandInfo>();
+		for (com.ganteater.ae.processor.annotation.CommandInfo cominfo : commandList) {
+			CommandInfo commandInfo = new CommandInfo();
 
-		for (CommandInfo cominfo : commandList) {
 			if (!cominfo.getName().equals("init")) {
-				contextBuilder.append("### Command `" + cominfo.getName() + "`\n\n");
+				commandInfo.setCommandName(cominfo.getName());
 			} else {
-				contextBuilder.append("### Processor Initialization\n\n");
+				commandInfo.setCommandName("Processor Initialization");
 			}
+
 			String description = cominfo.getDescription();
-			if (StringUtils.isNotEmpty(description)) {
-				contextBuilder.append("Description: " + description + "\n\n");
-			}
-			fillExampes(contextBuilder, cominfo);
-			fillResources(contextBuilder, cominfo);
+			commandInfo.setDescription(description);
+
+			commandInfo.setUsecases(fillExampes(cominfo));
+			commandInfoList.add(commandInfo);
 		}
 
-		return contextBuilder.toString();
+		info.setCommands(commandInfoList);
+		return info;
 	}
 
 	public String appendViewInfo(Class<?> clazz) {
@@ -83,38 +92,23 @@ public class AICodeHelper extends CodeHelper {
 		return contextBuilder.toString();
 	}
 
-	private void fillResources(StringBuilder builder, CommandInfo cominfo) {
-		String[] resources = cominfo.getResources();
-		if (resources != null && resources.length > 0) {
-			for (String resource : resources) {
-				try {
-					String reference = AEUtils.loadResource(resource);
-					builder.append(reference);
-				} catch (Exception e) {
-					getRecipePanel().getLogger().error("Resource: " + resource + " not found.");
-				}
-			}
-			builder.append("\n\n");
-		}
-	}
-
-	private void fillExampes(StringBuilder builder, CommandInfo cominfo) {
+	private List<String> fillExampes(com.ganteater.ae.processor.annotation.CommandInfo cominfo) {
+		List<String> sections = new ArrayList<>();
 		List<String> examples = cominfo.getExamples();
 		if (!examples.isEmpty()) {
-			builder.append("Examples:\n\n");
-			int i = 1;
-			StringBuilder examplesInfo = new StringBuilder();
 			for (String example : examples) {
-				appendExample(examplesInfo, i++, example);
+				sections.add(appendExample(example));
 			}
-			builder.append(examplesInfo.toString());
-			builder.append("\n\n");
 		}
+		return sections;
 	}
 
-	private void appendExample(StringBuilder context, int i, String example) {
+	private String appendExample(String example) {
+		String result = null;
+
 		String code = example;
 		String description = "";
+
 		int colonIndex = StringUtils.indexOf(example, ':');
 		int startTagIndex = StringUtils.indexOf(example, '<');
 		if (colonIndex >= 0 && colonIndex < startTagIndex) {
@@ -124,26 +118,28 @@ public class AICodeHelper extends CodeHelper {
 
 		code = code.replace("'", "\"");
 		if (StringUtils.contains(example, "\n")) {
-			context.append(description + "\n"
-					+ "```xml\n" + code + "\n```\n");
+			result = description + "\n" + "```xml\n" + code + "\n```";
 		} else {
-			context.append("- " + description + "`" + code + "`\n");
+			result = description + "`" + code + "`";
 		}
+
+		return result;
 	}
 
-	public String appendSystemVariablesContext() {
+	public VariableReport appendSystemVariablesContext() {
+		VariableReport variableReport = new VariableReport();
+
 		Map<String, Object> startVariables = getRecipePanel().getManager().getSystemVariables();
-		StringBuilder builder = new StringBuilder();
-		builder.append("# System Variable Names\n\n");
+		variableReport.setScope("System Variable Names");
+
+		ArrayList<String> arrayList = new ArrayList<>();
 
 		Set<String> keySet = startVariables.keySet();
-		int i = 1;
-		StringBuilder sysvarInfo = new StringBuilder();
 		for (String name : keySet) {
-			sysvarInfo.append((i++) + ". " + name + "\n");
+			arrayList.add(name);
 		}
-		builder.append(sysvarInfo.toString() + "\n\n");
-		return builder.toString();
+		variableReport.setVariables(arrayList);
+		return variableReport;
 	}
 
 	public String getChatModel() {

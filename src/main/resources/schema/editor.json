@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "title": "Editor",
+  "description": "Schema for the Editor object",
+  "properties": {
+    "content": {
+      "type": "string",
+      "description": "The content of the editor."
+    },
+    "contentType": {
+      "type": "string",
+      "description": "The type of content in the editor (e.g., xml)."
+    },
+    "caretPosition": {
+      "type": "integer",
+      "description": "The current caret position in the editor."
+    },
+    "selection": {
+      "type": "object",
+      "description": "Details about the text selection in the editor.",
+      "properties": {
+        "startPosition": {
+          "type": "integer",
+          "description": "The start position of the selection."
+        },
+        "endPosition": {
+          "type": "integer",
+          "description": "The end position of the selection."
+        }
+      },
+      "required": ["startPosition", "endPosition"]
+    }
+  },
+  "required": ["content", "contentType", "caretPosition", "selection"]
+}
