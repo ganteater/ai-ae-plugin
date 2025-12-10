@@ -6,8 +6,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.function.Function;
-import java.util.Optional;
 import java.util.Set;
 
 import org.apache.commons.lang.ObjectUtils;
@@ -37,8 +35,8 @@ import com.openai.models.responses.ResponseInputItem.Message;
 import com.openai.models.responses.ResponseInputItem.Message.Role;
 import com.openai.models.responses.ResponseOutputItem;
 import com.openai.models.responses.ResponseOutputMessage;
-import com.openai.models.responses.ResponseReasoningItem;
 import com.openai.models.responses.ResponseOutputMessage.Content;
+import com.openai.models.responses.ResponseReasoningItem;
 import com.openai.models.responses.ResponseReasoningItem.Summary;
 import com.openai.models.responses.Tool;
 
