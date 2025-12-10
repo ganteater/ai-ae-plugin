@@ -9,7 +9,7 @@
 	     The OpenAI commands are enclosed in Extern as they are not core processor commands. --> 
 	<Extern class="OpenAI" model="gpt-5-mini" apiKey="$var{OPENAI_API_KEY}">
 		<Prompt name="Summary">
-			<message role="user">Please provide a short (3-4 sentence) summary of the following webpage content:
+			<message>Please provide a short (3-4 sentence) summary of the following webpage content:
 $var{pageContent}</message> 
 		</Prompt> 
 	</Extern> 
