@@ -40,78 +40,49 @@ import com.openai.models.responses.ResponseReasoningItem;
 import com.openai.models.responses.ResponseReasoningItem.Summary;
 import com.openai.models.responses.Tool;
 
-public class OpenAI extends BaseProcessor {
+public class OpenAI extends AbstractAIProcessor {
 
-	private static final String DEFAULT_ROLE = "user";
-	private static final String DEFAULT_MODEL_NAME = "gpt-5-mini";
 	private OpenAIClient client;
-	private String chatModel;
-
 	private Map<Tool, Node> toolsMap = new HashMap<>();
 
 	@Override
 	@CommandDescription("OpenAI processor supports command to call OpenAI services.")
-	@CommandExamples({
-			"<Extern class='OpenAI'  model='enum:gpt-5|gpt-5-mini' apiKey='type:string'" })
+	@CommandExamples({ "<Extern class='OpenAI' model='enum:gpt-5|gpt-5-mini' apiKey='type:string'" })
 	public void init(Processor parentProcessor, Node action) throws CommandException {
 		super.init(parentProcessor, action);
-		chatModel = attr(action, "model", DEFAULT_MODEL_NAME);
-
-		String apiKey = attr(action, "apiKey");
-		if (StringUtils.isBlank(apiKey)) {
-			throw new CommandException("apiKey is required.", parentProcessor);
-		}
-
-		client = OpenAIOkHttpClient.builder().apiKey(apiKey).build();
+		client = OpenAIOkHttpClient.builder().apiKey(getApiKey()).build();
 	}
 
-	@CommandDescription("The 'name' attribute is used to define the property name where the response will be stored.")
-	@CommandExamples({ "<Prompt name='type:property'>...</Prompt>",
-			"<Prompt name='type:property'><message role='enum:user|system|developer'>...</message></Messages>" })
-	public void runCommandPrompt(Node action) throws CommandException {
-		String name = action.getAttribute("name");
-		ArrayList<ResponseInputItem> inputs = new ArrayList<ResponseInputItem>();
-
-		for (Node node : action) {
-			switch (node.getTag()) {
-			case "message":
-				String innerText = node.getInnerText();
-				Message message = message(innerText, attr(node, "role", DEFAULT_ROLE));
-				inputs.add(ResponseInputItem.ofMessage(message));
-				break;
-
-			case "$Text":
-				innerText = action.getInnerText();
-				message = message(innerText, attr(node, "role", DEFAULT_ROLE));
-				inputs.add(ResponseInputItem.ofMessage(message));
-				break;
-
-			default:
-				break;
-			}
-		}
-
-		String value = perform(inputs);
-
-		setVariableValue(name, value);
-	}
-
-	private String perform(ArrayList<ResponseInputItem> inputs) throws CommandException {
+	@Override
+	protected String perform(List<String> inputs) throws CommandException {
 		String result = null;
+		List<ResponseInputItem> inputsItems = new ArrayList<ResponseInputItem>();
+
+		for (String input : inputs) {
+			Message message = message(input);
+			inputsItems.add(ResponseInputItem.ofMessage(message));
+		}
+
+		result = performItems(inputsItems);
+		return result;
+	}
+
+	private String performItems(List<ResponseInputItem> inputsItems) throws CommandException {
+		String result;
 		Builder builder = ResponseCreateParams.builder()
-				.model(chatModel)
-				.input(Input.ofResponse(inputs));
+				.model(getChatModel())
+				.input(Input.ofResponse(inputsItems));
 
 		if (!toolsMap.isEmpty()) {
 			builder.tools(new ArrayList<Tool>(toolsMap.keySet()));
 		}
 
 		Response response = client.responses().create(builder.build());
-		result = parseResponse(inputs, response);
+		result = parseResponse(inputsItems, response);
 		return result;
 	}
 
-	private String parseResponse(ArrayList<ResponseInputItem> inputs, Response response) throws CommandException {
+	private String parseResponse(List<ResponseInputItem> inputs, Response response) throws CommandException {
 		String result = null;
 
 		List<ResponseOutputItem> output = response.output();
@@ -163,63 +134,11 @@ public class OpenAI extends BaseProcessor {
 			if (text != null) {
 				log.info(text);
 			}
-			result = perform(inputs);
+			result = performItems(inputs);
 		} else {
 			result = text;
 		}
 		return result;
-	}
-
-	@CommandDescription("Function command to create a function tool. Property tags define the properties of the function tool. "
-			+ "The Task command is called when the model requests the function.")
-	@CommandExamples({
-			"<Function name='type:string' description='type:string' type='enum:string|number|boolean|object|array' return='type:proprty'>"
-					+ "<property name='type:string' type='type:string' required='type:boolean'/>"
-					+ "<Task>...recipe code...</Task>"
-					+ "</Function>" })
-	public void runCommandFunction(Node action) {
-		String name = attr(action, "name");
-		String description = attr(action, "description");
-		String type = attr(action, "type", "string");
-
-		Node[] props = action.getNodes("property");
-
-		Parameters params = null;
-		ObjectMapper mapper = new ObjectMapper();
-
-		Map<String, Map<String, String>> fromValue = new HashMap<>();
-		ArrayNode requiregProps = mapper.createArrayNode();
-		for (Node propNode : props) {
-			String paramName = propNode.getAttribute("name");
-			String paramType = propNode.getAttribute("type");
-			boolean required = Boolean.parseBoolean(attr(propNode, "required", "false"));
-			if (required) {
-				requiregProps.add(paramName);
-			}
-
-			Map<String, String> value = new HashMap<>();
-			value.put("type", paramType);
-			fromValue.put(paramName, value);
-		}
-
-		JsonValue propsVal = JsonValue.fromJsonNode(mapper.convertValue(fromValue, JsonNode.class));
-		JsonValue requiredVal = JsonValue.from(requiregProps);
-		params = Parameters.builder()
-				.putAdditionalProperty("properties", propsVal)
-				.putAdditionalProperty("type", JsonString.of(type))
-				.putAdditionalProperty("required", requiredVal)
-				.build();
-
-		com.openai.models.responses.FunctionTool.Builder toolBuilder = FunctionTool.builder()
-				.name(name)
-				.description(description);
-
-		if (params != null) {
-			toolBuilder.parameters(params);
-		}
-
-		Tool tool = Tool.ofFunction(toolBuilder.strict(false).build());
-		toolsMap.put(tool, action);
 	}
 
 	private Object callFunction(ResponseFunctionToolCall function) throws CommandException {
@@ -233,7 +152,6 @@ public class OpenAI extends BaseProcessor {
 				FunctionTool functionTool = tool.function().get();
 				if (functionTool.name().equals(name)) {
 					Node functionNode = entry.getValue();
-					@SuppressWarnings("unchecked")
 					ObjectMapper mapper = new ObjectMapper();
 					try {
 						JsonNode args = mapper.readTree(function.arguments());
@@ -262,14 +180,50 @@ public class OpenAI extends BaseProcessor {
 		return returnValue;
 	}
 
-	private Message message(String input, String role) {
+	protected Message message(String input) {
 		String text = replaceProperties(input);
 		Message message = com.openai.models.responses.ResponseInputItem.Message
 				.builder()
-				.role(com.openai.models.responses.ResponseInputItem.Message.Role.of(role))
 				.addInputTextContent(text)
+				.role(com.openai.models.responses.ResponseInputItem.Message.Role.USER)
 				.build();
 		return message;
+	}
+
+	@Override
+	protected void addFunctionTool(Node action, Map<String, Map<String, String>> propsMap) {
+		String name = attr(action, "name");
+		String description = attr(action, "description");
+		String type = attr(action, "type", "string");
+
+		Parameters params = null;
+
+		ArrayNode requiregProps = new ObjectMapper().createArrayNode();
+		propsMap.entrySet().stream().forEach(item -> {
+			if (Boolean.valueOf(item.getValue().get("required"))) {
+				requiregProps.add(item.getKey());
+				item.getValue().remove("required");
+			}
+		});
+
+		JsonValue propsVal = JsonValue.fromJsonNode(new ObjectMapper().convertValue(propsMap, JsonNode.class));
+		JsonValue requiredVal = JsonValue.from(requiregProps);
+		params = Parameters.builder()
+				.putAdditionalProperty("properties", propsVal)
+				.putAdditionalProperty("type", JsonString.of(type))
+				.putAdditionalProperty("required", requiredVal)
+				.build();
+
+		com.openai.models.responses.FunctionTool.Builder toolBuilder = FunctionTool.builder()
+				.name(name)
+				.description(description);
+
+		if (params != null) {
+			toolBuilder.parameters(params);
+		}
+
+		Tool tool = Tool.ofFunction(toolBuilder.strict(false).build());
+		toolsMap.put(tool, action);
 	}
 
 }
