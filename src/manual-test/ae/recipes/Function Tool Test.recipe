@@ -11,10 +11,19 @@
 				<Out name="weatherResult" level="info" /> 
 			</Task> 
 		</Function> 
+		<Function name="get-traffic" description="Get current auto transport traffic for a city" type="object" return="trafficResult">
+			<property name="city" type="string" required="true" /> 
+			<Task>
+				<!-- Mock implementation: set weatherResult property --> 
+				<Var name="trafficResult">{ "city": "$var{city}", "traffic": "hard" }</Var> 
+				<Out name="city" level="info" /> 
+				<Out name="trafficResult" level="info" /> 
+			</Task> 
+		</Function> 
 		<!-- Send chat messages to the model --> 
 		<Prompt name="openaiResponse">
-			<message role="system">You are a helpful assistant that can call function get-weather when asked.</message> 
-			<message role="user">What is the weather in Paris?</message> 
+			<message role="system">You are a helpful assistant that can call function get-weather and get-traffic when asked.</message> 
+			<message role="user">What is the weather and traffic in Paris?</message> 
 		</Prompt> 
 		<!-- Output model response --> 
 		<Out name="openaiResponse" level="info" /> 
