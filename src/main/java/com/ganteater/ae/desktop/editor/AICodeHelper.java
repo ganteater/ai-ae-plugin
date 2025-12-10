@@ -6,8 +6,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import javax.swing.JOptionPane;
+
 import org.apache.commons.lang.StringUtils;
 
+import com.ganteater.ae.desktop.ui.OptionPane;
 import com.ganteater.ae.processor.Processor;
 import com.ganteater.ae.processor.annotation.CommandDescription;
 import com.ganteater.ae.util.xml.easyparser.Node;
@@ -18,30 +21,45 @@ import com.openai.client.OpenAIClient;
 import com.openai.client.okhttp.OpenAIOkHttpClient;
 
 public class AICodeHelper extends CodeHelper {
+	private static boolean isErrorShown;
 
 	private boolean debug;
 	private String chatModel;
+	private OpenAIClient client;
 
 	public AICodeHelper(TextEditor textEditor) throws IOException, IllegalAccessException {
 		super(textEditor);
 
 		TaskEditor recipeEditor = getRecipePanel();
 		Processor taskProcessor = recipeEditor.getTaskProcessor();
-
 		Node editorNode = recipeEditor.getEditor().getEditorNode();
 
 		chatModel = StringUtils.defaultIfEmpty(taskProcessor.attr(editorNode, "model"), "gpt-5-mini");
 		debug = Boolean.parseBoolean(taskProcessor.attr(editorNode, "debug", "false"));
 
 		String apiKey = taskProcessor.attr(editorNode, "apiKey");
-		if (apiKey == null) {
-			throw new IllegalArgumentException("apiKey attribute required.");
+		if (apiKey != null) {
+			if (client == null) {
+				client = OpenAIOkHttpClient.builder().apiKey(apiKey).build();
+			}
+			AIHelperDialog aiHelperDialog = new AIHelperDialog(this, client);
+			super.setDefaultDialog(aiHelperDialog);
+		} else {
+			if (!isErrorShown) {
+				showInvalidConfigurationError();
+			}
 		}
+	}
 
-		OpenAIClient client = OpenAIOkHttpClient.builder().apiKey(apiKey).build();
-
-		AIHelperDialog aiHelperDialog = new AIHelperDialog(this, client);
-		super.setDefaultDialog(aiHelperDialog);
+	public void showInvalidConfigurationError() {
+		OptionPane.showMessageDialog(getRecipePanel().getFrame(),
+				"The OpenAPI apiKey attribute is required but has not been set or is invalid. "
+						+ "AI Code Helper will not function without it. "
+						+ "Please set the apiKey attribute in your configuration and restart the application. "
+						+ "For more details, refer to the documentation at: "
+						+ "\"https://github.com/ganteater/ai-ae-plugin#configuration\".",
+				"Error", JOptionPane.ERROR_MESSAGE);
+		isErrorShown = true;
 	}
 
 	public CommandProcessorInfo getProcessorInfo(Class<?> clazz) {

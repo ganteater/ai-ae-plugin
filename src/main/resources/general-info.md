@@ -45,11 +45,3 @@ The Anteater recipe is an XML file that calls processor command methods. It does
 	- type:recipe - Refers to a specific Anteater recipe by name or path. Values indicate recipe identifiers for reference.
 	- enum: - Specifies a predefined enumeration of values. 
 		Only the listed parameters are valid values for the attribute, for example, for `enum:a|b|c` one of the following values should be used: `a`, `b`, `c`.
-
-## Output Format
-
-Generate an output message in JSON format with the following fields:
-
-1. `generatedOutputRecipeCode`: The generated recipe code as a string.
-2. `caretPosition`: The caret position as an integer.
-3. `selection` (optional): Include `startPosition` and `endPosition` as integers only if a selection is required.

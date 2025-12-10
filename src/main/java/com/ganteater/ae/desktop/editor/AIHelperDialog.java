@@ -14,6 +14,7 @@ import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 
 import javax.swing.BorderFactory;
@@ -53,6 +54,8 @@ import com.openai.models.responses.ResponseUsage;
 
 public class AIHelperDialog extends HelperDialog {
 
+	private static final String OUTPUT_FORMAT_RESOURCE_NAME = "/output-format.md";
+
 	private static final long serialVersionUID = 1L;
 
 	private static final String REQUEST_BUTTON_TEXT = "Perform";
@@ -78,13 +81,8 @@ public class AIHelperDialog extends HelperDialog {
 		comp.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
 		comp.setPreferredSize(new Dimension(300, 150));
 
-		String generalInfo;
-		try {
-			generalInfo = AEUtils.loadResource("/generalInfo.md");
-			addContextInput("GeneralInfo", generalInfo);
-		} catch (Exception e) {
-			getLog().error("Resource: " + "/generalInfo.md" + " not found.", e);
-		}
+		addContext("/general-info.md");
+		addContext(OUTPUT_FORMAT_RESOURCE_NAME);
 
 		JsonMapper mapper = new JsonMapper();
 
@@ -146,6 +144,23 @@ public class AIHelperDialog extends HelperDialog {
 
 	}
 
+	private void addContext(String name) {
+		String generalInfo;
+		try {
+			generalInfo = AEUtils.loadResource(name);
+			addContextInput(name, generalInfo);
+		} catch (Exception e) {
+			getLog().error("Resource: " + name + " not found.", e);
+		}
+	}
+
+	private ILogger getLog() {
+		if (log == null) {
+			log = getCodeHelper().getRecipePanel().createLog("Code Helper", true);
+		}
+		return log;
+	}
+
 	private void perform(final OpenAIClient client) {
 		new Thread(() -> {
 			try {
@@ -154,6 +169,9 @@ public class AIHelperDialog extends HelperDialog {
 				performRequest(client);
 				setVisible(false);
 
+			} catch (Exception e) {
+				getLog().error(e.getMessage());
+				getCodeHelper().showInvalidConfigurationError();
 			} finally {
 				perform.setText(REQUEST_BUTTON_TEXT);
 				perform.setEnabled(true);
@@ -175,11 +193,14 @@ public class AIHelperDialog extends HelperDialog {
 
 			List<ResponseInputItem> inputs = new ArrayList<>();
 
-			Collection<ResponseInputItem> values = contextMap.values();
-			for (ResponseInputItem processorInfo : values) {
-				String text = processorInfo.message().get().content().get(0).inputText().get().text();
-				debug(new AELogRecord(text, "json", "Input"));
-				inputs.add(processorInfo);
+			Collection<Entry<String, ResponseInputItem>> contextEntrySet = contextMap.entrySet();
+			for (Entry<String, ResponseInputItem> contextEntry : contextEntrySet) {
+				if (!StringUtils.contains(contextEntry.getKey(), OUTPUT_FORMAT_RESOURCE_NAME)) {
+					ResponseInputItem value = contextEntry.getValue();
+					String text = value.message().get().content().get(0).inputText().get().text();
+					getLog().debug(new AELogRecord(text, "txt", null));
+					inputs.add(value);
+				}
 			}
 
 			JsonMapper mapper = new JsonMapper();
@@ -198,7 +219,7 @@ public class AIHelperDialog extends HelperDialog {
 			editorInfo.setSelection(selection);
 			try {
 				String source = mapper.writeValueAsString(editorInfo);
-				debug(new AELogRecord(source, "json", "Input"));
+				getLog().debug(new AELogRecord(source, "json", null));
 
 				Message message = com.openai.models.responses.ResponseInputItem.Message.builder()
 						.role(com.openai.models.responses.ResponseInputItem.Message.Role.USER)
@@ -212,7 +233,7 @@ public class AIHelperDialog extends HelperDialog {
 						.addInputTextContent(prompt).build();
 
 				inputs.add(ResponseInputItem.ofMessage(input));
-				debug(new AELogRecord(prompt, "txt", "Input"));
+				getLog().info(new AELogRecord(prompt, "txt", null));
 
 				Builder builder = ResponseCreateParams.builder().model(getCodeHelper().getChatModel())
 						.input(Input.ofResponse(inputs));
@@ -239,7 +260,7 @@ public class AIHelperDialog extends HelperDialog {
 
 	private void performMessage(List<com.openai.models.responses.ResponseOutputMessage.Content> content) {
 		String responseText = content.get(0).outputText().get().text();
-		debug(new AELogRecord(responseText, "xml", "Output"));
+		getLog().debug(new AELogRecord(responseText, "xml", "Output"));
 
 		getCodeHelper().hide();
 		updateCode(responseText);
@@ -290,14 +311,9 @@ public class AIHelperDialog extends HelperDialog {
 			long outputTokens = optional.get().outputTokens();
 			long reasoningTokens = optional.get().outputTokensDetails().reasoningTokens();
 
-			debug(String.format("Input: %1$d, cached: %2$d, output: %3$d, reasoning: %4$d tokens.", inputTokens,
-					inputCachedTokens, outputTokens, reasoningTokens));
-		}
-	}
-
-	private void debug(Object message) {
-		if (getCodeHelper().isDebug()) {
-			getLog().debug(message);
+			getLog().debug(
+					String.format("Input: %1$d, cached: %2$d, output: %3$d, reasoning: %4$d tokens.", inputTokens,
+							inputCachedTokens, outputTokens, reasoningTokens));
 		}
 	}
 
@@ -314,14 +330,6 @@ public class AIHelperDialog extends HelperDialog {
 
 	public Object getProcessorDescription(Object processorName) {
 		return null;
-	}
-
-	private ILogger getLog() {
-		log = getCodeHelper().getEditor().getRecipePanel().getLogger();
-		if (log == null) {
-			log = getCodeHelper().getRecipePanel().createLog("Helper", true);
-		}
-		return log;
 	}
 
 	@Override
