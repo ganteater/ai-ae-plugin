@@ -39,6 +39,8 @@ import com.openai.models.responses.ResponseOutputMessage.Content;
 import com.openai.models.responses.ResponseReasoningItem;
 import com.openai.models.responses.ResponseReasoningItem.Summary;
 import com.openai.models.responses.Tool;
+import com.openai.models.responses.WebSearchTool;
+import com.openai.models.responses.WebSearchTool.UserLocation;
 
 public class OpenAI extends AbstractAIProcessor {
 
@@ -51,6 +53,37 @@ public class OpenAI extends AbstractAIProcessor {
 	public void init(Processor parentProcessor, Node action) throws CommandException {
 		super.init(parentProcessor, action);
 		client = OpenAIOkHttpClient.builder().apiKey(getApiKey()).build();
+	}
+
+	@CommandExamples({ "<WebSearch type='enum:web_search_preview|web_search_preview_2025_03_11'/>",
+			"<WebSearch type='enum:web_search_preview|web_search_preview_2025_03_11' city='type:string' country='type:string' region='type:string' />" })
+	public void runCommandWebSearch(Node action) {
+		String type = attr(action, "type", "web_search_preview");
+
+		com.openai.models.responses.WebSearchTool.UserLocation.Builder location = UserLocation.builder();
+		location.type(WebSearchTool.UserLocation.Type.APPROXIMATE);
+
+		String city = attr(action, "city");
+		if (city != null) {
+			location.city(city);
+		}
+
+		String country = attr(action, "country");
+		if (country != null) {
+			location.country(country);
+		}
+
+		String region = attr(action, "region");
+		if (region != null) {
+			location.region(region);
+		}
+
+		com.openai.models.responses.WebSearchTool.Builder webSearch = WebSearchTool.builder()
+				.type(WebSearchTool.Type.of(type));
+
+		webSearch.userLocation(location.build());
+		Tool tool = Tool.ofWebSearch(webSearch.build());
+		toolsMap.put(tool, action);
 	}
 
 	@Override
