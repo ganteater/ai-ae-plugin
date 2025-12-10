@@ -22,8 +22,7 @@
 		</Function> 
 		<!-- Send chat messages to the model --> 
 		<Prompt name="openaiResponse">
-			<message>You are a helpful assistant that can call function get-weather and get-traffic when asked.</message> 
-			<message>What is the weather and traffic in Paris?</message> 
+			What is the weather and traffic in Paris?
 		</Prompt> 
 		<!-- Output model response --> 
 		<Out name="openaiResponse" level="info" /> 
