@@ -56,8 +56,6 @@ public abstract class AbstractAIProcessor extends BaseProcessor {
 		setVariableValue(name, value);
 	}
 
-	protected abstract String perform(List<String> inputs) throws CommandException;
-
 	@CommandDescription("Function command to create a function tool. Property tags define the properties of the function tool. "
 			+ "The Task command is called when the model requests the function.")
 	@CommandExamples({
@@ -83,8 +81,6 @@ public abstract class AbstractAIProcessor extends BaseProcessor {
 		addFunctionTool(action, propsMap);
 	}
 
-	protected abstract void addFunctionTool(Node action, Map<String, Map<String, String>> propsMap);
-
 	public String getChatModel() {
 		return chatModel;
 	}
@@ -92,5 +88,9 @@ public abstract class AbstractAIProcessor extends BaseProcessor {
 	public String getApiKey() {
 		return apiKey;
 	}
+
+	protected abstract void addFunctionTool(Node action, Map<String, Map<String, String>> propsMap);
+
+	protected abstract String perform(List<String> inputs) throws CommandException;
 
 }

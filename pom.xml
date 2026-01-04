@@ -16,6 +16,11 @@
 	<description>Module provides anteater plugin for AI.</description>
 	<url>https://ganteater.com/ae-plugins</url>
 
+	<properties>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<java.version>9</java.version>
+	</properties>
+
 	<dependencies>
 		<dependency>
 			<groupId>com.openai</groupId>
