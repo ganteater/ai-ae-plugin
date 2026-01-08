@@ -1,0 +1,45 @@
+<Recipe name="Out Examples">
+	<!-- Output the value of a variable --> 
+	<Var name="simpleVar" value="Hello, Anteater!" /> 
+	<Out name="simpleVar" /> 
+	<!-- Output text directly --> 
+	<Out>This is a direct text output.</Out> 
+	<!-- Output the value of a variable with a specific type (txt) --> 
+	<Var name="jsonVar" type="json">{"key":"value"}</Var> 
+	<Out name="jsonVar" type="txt" /> 
+	<!-- Output the value of a variable with a specific type (json) --> 
+	<Out name="jsonVar" type="json" /> 
+	<!-- Output the value of a variable with a specific type (xml) --> 
+	<Var name="xmlVar" value="&lt;root&gt;data&lt;/root&gt;" /> 
+	<Out name="xmlVar" type="xml" /> 
+	<!-- Output the value of a variable with a specific type (csv) --> 
+	<Var name="csvVar" value="a,b,c" /> 
+	<Out name="csvVar" type="csv" /> 
+	<!-- Output the value of a variable with a specific type (url) --> 
+	<Var name="urlVar" value="https://example.com" /> 
+	<Out name="urlVar" type="url" /> 
+	<!-- Output the value of a variable with a specific type (path) --> 
+	<Var name="pathVar" value="/tmp/test.txt" /> 
+	<Out name="pathVar" type="path" /> 
+	<!-- Output the value of a variable with a specific type (uri) --> 
+	<Var name="uriVar" value="urn:test:123" /> 
+	<Out name="uriVar" type="uri" /> 
+	<!-- Output the value of a variable with a specific type (~json) --> 
+	<Out name="jsonVar" type="~json" /> 
+	<!-- Output the value of a variable with a specific log level (debug) --> 
+	<Out name="simpleVar" level="debug" /> 
+	<!-- Output the value of a variable with a specific log level (warn) --> 
+	<Out name="simpleVar" level="warn" /> 
+	<!-- Output the value of a variable with a specific log level (error) --> 
+	<Out name="simpleVar" level="error" /> 
+	<!-- Output the value of a variable with a specific log level (info) --> 
+	<Out name="simpleVar" level="info" /> 
+	<!-- Output the value of a variable to a file --> 
+	<Out name="simpleVar" file="/tmp/output.txt" /> 
+	<!-- Output the value of a variable to a file with append and encoding --> 
+	<Out name="simpleVar" file="/tmp/output.txt" append="true" encoding="UTF-8" /> 
+	<!-- Output text with a specific log level --> 
+	<Out level="debug">Debug level output text.</Out> 
+	<!-- Output text with a variable inside --> 
+	<Out level="info">The value is: $var{simpleVar}</Out> 
+</Recipe> 

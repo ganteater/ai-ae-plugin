@@ -1,0 +1,52 @@
+<Recipe name="Var Examples">
+	<!-- 1. Initialize variable with console input --> 
+	<Var name="UserInput" init="console" type="string" /> 
+	<!-- 2. Initialize variable with mandatory input (shows dialog, error if skipped) --> 
+	<Var name="MandatoryVar" init="mandatory" type="string" /> 
+	<!-- 3. Initialize variable with default value if not defined --> 
+	<Var name="DefaultVar" init="default" type="string" value="DefaultValue" /> 
+	<!-- 4. Initialize variable as password (input masked) --> 
+	<Var name="PasswordVar" type="password" init="console" /> 
+	<!-- 5. Initialize variable as path (shows directory dialog) --> 
+	<Var name="PathVar" type="path" init="console" /> 
+	<!-- 6. Initialize variable as text (large text, not saved in preferences) --> 
+	<Var name="LargeTextVar" type="text" init="console" /> 
+	<!-- 7. Initialize variable as array --> 
+	<Var name="ArrayVar" type="array">
+		<item>Item1</item> 
+		<item>Item2</item> 
+		<item>Item3</item> 
+	</Var> 
+	<!-- 8. Initialize variable as number --> 
+	<Var name="NumberVar" type="number" value="42" /> 
+	<!-- 9. Initialize variable as map --> 
+	<Var name="MapVar" type="map">
+		<item key="key1">value1</item> 
+		<item key="key2">value2</item> 
+	</Var> 
+	<!-- 10. Initialize variable as JSON (inner text, not value attribute) --> 
+	<Var name="JsonVar" type="json">
+		{
+			"name": "John",
+			"age": 30
+		}
+	</Var> 
+	<!-- 11. Initialize variable from another property --> 
+	<Var name="CopyVar" source="DefaultVar" /> 
+	<!-- 12. Initialize variable from file (property file) --> 
+	<Var init="file" file="config.properties" /> 
+	<!-- 13. Initialize array variable from file --> 
+	<Var name="ArrayFromFile" type="array" file="array.txt" /> 
+	<!-- 14. Initialize variable with substring from another property --> 
+	<Var name="SubstrVar" source="LargeTextVar" start="0" end="5" /> 
+	<!-- 15. Define variable with inner items (array) --> 
+	<Var name="InnerArrayVar" type="array">
+		<item>Alpha</item> 
+		<item>Beta</item> 
+	</Var> 
+	<!-- 16. Define variable with inner items (map) --> 
+	<Var name="InnerMapVar" type="map">
+		<item key="A">1</item> 
+		<item key="B">2</item> 
+	</Var> 
+</Recipe> 

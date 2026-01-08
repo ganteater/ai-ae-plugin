@@ -1,0 +1,14 @@
+<Recipe name="Load Examples">
+	<!-- 1. Load variable with console input initialization --> 
+	<Load name="consoleVar" init="console" /> 
+	<Out name="consoleVar" /> 
+	<!-- 2. Load variable from a file path --> 
+	<Load name="fileVar" file="data/example.properties" /> 
+	<Out name="fileVar" /> 
+	<!-- 3. Load variable from a file path with timeout and mode --> 
+	<Load name="fileVarTimeout" file="sample.txt" timeout="2s" mode="default" /> 
+	<Out name="fileVarTimeout" /> 
+	<!-- 4. Load variable from a URL with timeout and mode --> 
+	<Load name="urlVar" url="https://example.com/data.txt" timeout="2s" mode="default" /> 
+	<Out name="urlVar" /> 
+</Recipe> 

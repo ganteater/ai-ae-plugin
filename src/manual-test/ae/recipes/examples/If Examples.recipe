@@ -1,0 +1,74 @@
+<Recipe name="If Examples">
+	<!-- 1. If with name attribute and string matching conditions --> 
+	<Var name="testVar1" value="HelloWorld" /> 
+	<If name="testVar1" startsWith="Hello">
+		<Out name="testVar1" level="info">Starts with Hello</Out> 
+	</If> 
+	<If name="testVar1" endsWith="World">
+		<Out name="testVar1" level="info">Ends with World</Out> 
+	</If> 
+	<If name="testVar1" contains="loWo">
+		<Out name="testVar1" level="info">Contains loWo</Out> 
+	</If> 
+	<If name="testVar1" equals="HelloWorld">
+		<Out name="testVar1" level="info">Equals HelloWorld</Out> 
+	</If> 
+	<If name="testVar1" notEqual="SomethingElse">
+		<Out name="testVar1" level="info">Not equal to SomethingElse</Out> 
+	</If> 
+	<!-- 2. If with value attribute and string matching conditions, with Else --> 
+	<Var name="testVar2" value="Anteater" /> 
+	<If value="testVar2" startsWith="Ant">
+		<Out name="testVar2" level="info">Starts with Ant</Out> 
+		<Else>
+			<Out name="testVar2" level="info">Does not start with Ant</Out> 
+		</Else> 
+	</If> 
+	<If value="testVar2" endsWith="eater">
+		<Out name="testVar2" level="info">Ends with eater</Out> 
+		<Else>
+			<Out name="testVar2" level="info">Does not end with eater</Out> 
+		</Else> 
+	</If> 
+	<If value="testVar2" contains="eat">
+		<Out name="testVar2" level="info">Contains eat</Out> 
+		<Else>
+			<Out name="testVar2" level="info">Does not contain eat</Out> 
+		</Else> 
+	</If> 
+	<If value="testVar2" equals="Anteater">
+		<Out name="testVar2" level="info">Equals Anteater</Out> 
+		<Else>
+			<Out name="testVar2" level="info">Does not equal Anteater</Out> 
+		</Else> 
+	</If> 
+	<If value="testVar2" notEqual="Bear">
+		<Out name="testVar2" level="info">Not equal to Bear</Out> 
+		<Else>
+			<Out name="testVar2" level="info">Equals Bear</Out> 
+		</Else> 
+	</If> 
+	<!-- 3. If with expression attribute --> 
+	<Var name="num" value="10" /> 
+	<If expression="$var{num} &gt; 5">
+		<Out name="num" level="info">num &gt; 5</Out> 
+	</If> 
+	<If expression="$var{num} == 10">
+		<Out name="num" level="info">num == 10</Out> 
+	</If> 
+	<If expression="$var{num} &lt; 5">
+		<Out name="num" level="info">num &lt; 5</Out> 
+		<Else>
+			<Out name="num" level="info">num is not &lt; 5</Out> 
+		</Else> 
+	</If> 
+	<!-- 4. If with isNull and isNotNull --> 
+	<Var name="maybeNull" /> 
+	<If isNull="maybeNull">
+		<Out name="maybeNull" level="info">maybeNull is null</Out> 
+	</If> 
+	<Var name="notNull" value="something" /> 
+	<If isNotNull="notNull">
+		<Out name="notNull" level="info">notNull is not null</Out> 
+	</If> 
+</Recipe> 

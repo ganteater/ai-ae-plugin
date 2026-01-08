@@ -1,0 +1,9 @@
+<Recipe name="GetWebPageContent">
+	<!-- Get web page content by URL and output to log --> 
+	<Var name="pageUrl" init="console" type="string" /> 
+	<Get name="pageContent" url="$var{pageUrl}" /> 
+	<Out name="pageContent" level="info" /> 
+	<!-- Output in HTML view --> 
+	<View name="htmlView" reuse="false" type="HTML" /> 
+	<Out view="htmlView">&lt;html&gt;&lt;body&gt;&lt;pre&gt;$var{pageContent}&lt;/pre&gt;&lt;/body&gt;&lt;/html&gt;</Out> 
+</Recipe> 

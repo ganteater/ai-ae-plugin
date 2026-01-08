@@ -31,7 +31,7 @@ public class AICodeHelper extends CodeHelper {
 		super(textEditor);
 
 		TaskEditor recipeEditor = getRecipePanel();
-		Processor taskProcessor = recipeEditor.getTaskProcessor();
+		Processor taskProcessor = recipeEditor.getProcessor();
 		Node editorNode = recipeEditor.getEditor().getEditorNode();
 
 		chatModel = StringUtils.defaultIfEmpty(taskProcessor.attr(editorNode, "model"), "gpt-5-mini");

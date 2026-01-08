@@ -1,0 +1,15 @@
+<Recipe name="CheckInArray Examples">
+	<!-- Example 1: Basic check for a value in an array --> 
+	<Var name="myArray">
+		<item>apple</item> 
+		<item>banana</item> 
+		<item>cherry</item> 
+	</Var> 
+	<Var name="searchValue" init="default" type="string">banana</Var> 
+	<CheckInArray value="$var{searchValue}" array="myArray" /> 
+	<Out name="searchValue" /> 
+	<!-- Example 2: Check with a custom error message --> 
+	<Var name="missingValue" init="default" type="string">orange</Var> 
+	<CheckInArray value="$var{missingValue}" array="myArray" onErrorMsg="Value '$var{missingValue}' not found in array!" /> 
+	<Out name="missingValue" /> 
+</Recipe> 
