@@ -1,99 +1,78 @@
 package com.ganteater.ae.desktop.editor;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import javax.swing.JOptionPane;
-
 import org.apache.commons.lang.StringUtils;
 
-import com.ganteater.ae.desktop.ui.OptionPane;
+import com.ganteater.ae.processor.CommandInfo;
 import com.ganteater.ae.processor.Processor;
 import com.ganteater.ae.processor.annotation.CommandDescription;
 import com.ganteater.ae.util.xml.easyparser.Node;
-import com.ganteater.ai.model.CommandInfo;
-import com.ganteater.ai.model.CommandProcessorInfo;
-import com.ganteater.ai.model.VariableReport;
 import com.openai.client.OpenAIClient;
 import com.openai.client.okhttp.OpenAIOkHttpClient;
 
 public class AICodeHelper extends CodeHelper {
-	private static boolean isErrorShown;
 
-	private boolean debug;
 	private String chatModel;
-	private OpenAIClient client;
+	private boolean debug;
 
 	public AICodeHelper(TextEditor textEditor) throws IOException, IllegalAccessException {
 		super(textEditor);
 
 		TaskEditor recipeEditor = getRecipePanel();
 		Processor taskProcessor = recipeEditor.getProcessor();
+
 		Node editorNode = recipeEditor.getEditor().getEditorNode();
 
-		chatModel = StringUtils.defaultIfEmpty(taskProcessor.attr(editorNode, "model"), "gpt-5-mini");
+		String model = taskProcessor.attr(editorNode, "model");
+		chatModel = StringUtils.defaultIfEmpty(model, "gpt-5-mini");
 		debug = Boolean.parseBoolean(taskProcessor.attr(editorNode, "debug", "false"));
 
+		OpenAIClient client = createClient(taskProcessor, editorNode);
+
+		AIHelperDialog aiHelperDialog = new AIHelperDialog(this, client);
+		super.setDefaultDialog(aiHelperDialog);
+	}
+
+	protected OpenAIClient createClient(Processor taskProcessor, Node editorNode) throws IOException {
 		String apiKey = taskProcessor.attr(editorNode, "apiKey");
-		if (apiKey != null) {
-			if (client == null) {
-				client = OpenAIOkHttpClient.builder().apiKey(apiKey).build();
-			}
-			AIHelperDialog aiHelperDialog = new AIHelperDialog(this, client);
-			super.setDefaultDialog(aiHelperDialog);
-		} else {
-			if (!isErrorShown) {
-				showInvalidConfigurationError();
-			}
+		if (apiKey == null) {
+			throw new IllegalArgumentException("apiKey attribute required.");
 		}
+
+		String baseUrl = taskProcessor.attr(editorNode, "baseUrl");
+		OpenAIClient client = OpenAIOkHttpClient.builder().apiKey(apiKey).baseUrl(baseUrl).build();
+		return client;
 	}
 
-	public void showInvalidConfigurationError() {
-		OptionPane.showMessageDialog(getRecipePanel().getFrame(),
-				"The OpenAPI apiKey attribute is required but has not been set or is invalid. "
-						+ "AI Code Helper will not function without it. "
-						+ "Please set the apiKey attribute in your configuration and restart the application. "
-						+ "For more details, refer to the documentation at: "
-						+ "\"https://github.com/ganteater/ai-ae-plugin#configuration\".",
-				"Error", JOptionPane.ERROR_MESSAGE);
-		isErrorShown = true;
-	}
+	public String appendProcessorInfo(Class<?> clazz) {
+		StringBuilder contextBuilder = new StringBuilder();
 
-	public CommandProcessorInfo getProcessorInfo(Class<?> clazz) {
-		CommandProcessorInfo info = new CommandProcessorInfo();
-
-		info.setName("Command Processor: `" + clazz.getSimpleName() + "`");
-		info.setClass_(clazz.getName());
-
+		contextBuilder.append("# Command Processor: " + clazz + "\n\n");
 		CommandDescription descriptionAnnotation = clazz.getAnnotation(CommandDescription.class);
 		if (descriptionAnnotation != null) {
-			ArrayList<Object> sections = new ArrayList<Object>();
-			sections.add(descriptionAnnotation.value());
+			contextBuilder.append(descriptionAnnotation.value() + "\n\n");
 		}
 
-		List<com.ganteater.ae.processor.CommandInfo> commandList = super.getCommandList(null, clazz);
-		List<CommandInfo> commandInfoList = new ArrayList<CommandInfo>();
-		for (com.ganteater.ae.processor.CommandInfo cominfo : commandList) {
-			CommandInfo commandInfo = new CommandInfo();
+		List<CommandInfo> commandList = super.getCommandList(null, clazz);
 
+		for (CommandInfo cominfo : commandList) {
 			if (!cominfo.getName().equals("init")) {
-				commandInfo.setCommandName(cominfo.getName());
+				contextBuilder.append("### Command `" + cominfo.getName() + "`\n\n");
 			} else {
-				commandInfo.setCommandName("Processor Initialization");
+				contextBuilder.append("### Processor Initialization\n\n");
 			}
-
 			String description = cominfo.getDescription();
-			commandInfo.setDescription(description);
-
-			commandInfo.setUsecases(fillExampes(cominfo));
-			commandInfoList.add(commandInfo);
+			if (StringUtils.isNotEmpty(description)) {
+				contextBuilder.append("Description: " + description + "\n\n");
+			}
+			fillExampes(contextBuilder, cominfo);
 		}
 
-		info.setCommands(commandInfoList);
-		return info;
+		return contextBuilder.toString();
 	}
 
 	public String appendViewInfo(Class<?> clazz) {
@@ -109,23 +88,23 @@ public class AICodeHelper extends CodeHelper {
 		return contextBuilder.toString();
 	}
 
-	private List<String> fillExampes(com.ganteater.ae.processor.CommandInfo cominfo) {
-		List<String> sections = new ArrayList<>();
+	private void fillExampes(StringBuilder builder, CommandInfo cominfo) {
 		List<String> examples = cominfo.getExamples();
 		if (!examples.isEmpty()) {
+			builder.append("Examples:\n\n");
+			int i = 1;
+			StringBuilder examplesInfo = new StringBuilder();
 			for (String example : examples) {
-				sections.add(appendExample(example));
+				appendExample(examplesInfo, i++, example);
 			}
+			builder.append(examplesInfo.toString());
+			builder.append("\n\n");
 		}
-		return sections;
 	}
 
-	private String appendExample(String example) {
-		String result = null;
-
+	private void appendExample(StringBuilder context, int i, String example) {
 		String code = example;
 		String description = "";
-
 		int colonIndex = StringUtils.indexOf(example, ':');
 		int startTagIndex = StringUtils.indexOf(example, '<');
 		if (colonIndex >= 0 && colonIndex < startTagIndex) {
@@ -135,28 +114,25 @@ public class AICodeHelper extends CodeHelper {
 
 		code = code.replace("'", "\"");
 		if (StringUtils.contains(example, "\n")) {
-			result = description + "\n" + "```xml\n" + code + "\n```";
+			context.append(description + "\n" + "```xml\n" + code + "\n```\n");
 		} else {
-			result = description + "`" + code + "`";
+			context.append("- " + description + "`" + code + "`\n");
 		}
-
-		return result;
 	}
 
-	public VariableReport appendSystemVariablesContext() {
-		VariableReport variableReport = new VariableReport();
-
+	public String appendSystemVariablesContext() {
 		Map<String, Object> startVariables = getRecipePanel().getManager().getSystemVariables();
-		variableReport.setScope("System Variable Names");
-
-		ArrayList<String> arrayList = new ArrayList<>();
+		StringBuilder builder = new StringBuilder();
+		builder.append("# System Variable Names\n\n");
 
 		Set<String> keySet = startVariables.keySet();
+		int i = 1;
+		StringBuilder sysvarInfo = new StringBuilder();
 		for (String name : keySet) {
-			arrayList.add(name);
+			sysvarInfo.append((i++) + ". " + name + "\n");
 		}
-		variableReport.setVariables(arrayList);
-		return variableReport;
+		builder.append(sysvarInfo.toString() + "\n\n");
+		return builder.toString();
 	}
 
 	public String getChatModel() {

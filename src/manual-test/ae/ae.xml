@@ -1,9 +1,16 @@
-<Environment xmlns="http://ganteater.com/xml/configuration" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ganteater.com/xml/configuration https://ganteater.com/xml/configuration/anteater-1.2.4.2.xsd">
+<Environment xmlns="http://ganteater.com/xml/configuration"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://ganteater.com/xml/configuration https://ganteater.com/xml/configuration/anteater-1.2.4.2.xsd">
+
 	<Configuration name="OpenAI Demo">
-		<Var name="OPENAI_API_KEY" init="console" type="password"/>
-		<Editor helper="AICodeHelper" apiKey="$var{OPENAI_API_KEY}" debug="true"/>
+		<Table name="CodeMie Credentials">
+			<var name="CodeMie Username" />
+			<var name="CodeMie Password" type="password" />
+		</Table>
+
+		<Editor helper="CodeMieHelper"
+			username="$var{CodeMie Username}" password="$var{CodeMie Password}"
+			model="gpt-5-2-2025-12-11" debug="true" />
 	</Configuration>
-	<Configuration name="Empty OpenAI API key">
-		<Editor helper="AICodeHelper" debug="true" apiKey=""/>
-	</Configuration>
+
 </Environment>

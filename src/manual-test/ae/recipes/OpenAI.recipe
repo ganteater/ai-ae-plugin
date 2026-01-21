@@ -12,7 +12,11 @@
 			<file name="LLM_Usage_Guide.pdf" width="800" height="600" /> 
 		</attach> 
 	</About> 
-	<Extern class="OpenAI" apiKey="$var{OPENAI_API_KEY}">
+	<Extern class="OpenAI" apiKey="$var{OPENAI_API_KEY}" baseUrl="https://codemie.lab.epam.com/code-assistant-api/v1">
+		<Models name="models" /> 
+		<Var name="model" source="models" init="console" /> 
+	</Extern> 
+	<Extern class="OpenAI" model="gpt-5-2-2025-12-11" apiKey="$var{OPENAI_API_KEY}" baseUrl="https://codemie.lab.epam.com/code-assistant-api/v1">
 		<Prompt name="responseText">Write a short poem about the beauty of nature.</Prompt> 
 		<Out name="responseText" level="info" /> 
 	</Extern> 

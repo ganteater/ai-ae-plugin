@@ -14,7 +14,6 @@ import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Optional;
 
 import javax.swing.BorderFactory;
@@ -29,7 +28,6 @@ import org.apache.commons.lang.StringUtils;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.ganteater.ae.AELogRecord;
 import com.ganteater.ae.ILogger;
 import com.ganteater.ae.desktop.ui.OptionPane;
@@ -37,10 +35,9 @@ import com.ganteater.ae.desktop.view.View;
 import com.ganteater.ae.processor.Processor;
 import com.ganteater.ae.util.AEUtils;
 import com.ganteater.ae.util.ClassUtils;
-import com.ganteater.ai.model.CommandProcessorInfo;
-import com.ganteater.ai.model.Editor;
-import com.ganteater.ai.model.Selection;
-import com.ganteater.ai.model.VariableReport;
+import com.ganteater.ai.Marker;
+import com.ganteater.ai.MarkerExtractResult;
+import com.ganteater.ai.Prompt;
 import com.openai.client.OpenAIClient;
 import com.openai.core.JsonValue;
 import com.openai.errors.RateLimitException;
@@ -50,11 +47,10 @@ import com.openai.models.responses.ResponseCreateParams.Builder;
 import com.openai.models.responses.ResponseCreateParams.Input;
 import com.openai.models.responses.ResponseInputItem;
 import com.openai.models.responses.ResponseInputItem.Message;
+import com.openai.models.responses.ResponseOutputMessage.Content;
 import com.openai.models.responses.ResponseUsage;
 
 public class AIHelperDialog extends HelperDialog {
-
-	private static final String OUTPUT_FORMAT_RESOURCE_NAME = "/output-format.md";
 
 	private static final long serialVersionUID = 1L;
 
@@ -65,7 +61,7 @@ public class AIHelperDialog extends HelperDialog {
 	private JTextArea editor = new JTextArea();
 	private JButton perform = new JButton(REQUEST_BUTTON_TEXT);
 
-	public AIHelperDialog(final AICodeHelper codeHelper, final OpenAIClient client) throws JsonProcessingException {
+	public AIHelperDialog(final AICodeHelper codeHelper, final OpenAIClient client) {
 		super(codeHelper);
 
 		setAlwaysOnTop(true);
@@ -81,20 +77,13 @@ public class AIHelperDialog extends HelperDialog {
 		comp.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
 		comp.setPreferredSize(new Dimension(300, 150));
 
-		addContext("/general-info.md");
-		addContext(OUTPUT_FORMAT_RESOURCE_NAME);
-
-		JsonMapper mapper = new JsonMapper();
-
-		VariableReport varInfo = getCodeHelper().appendSystemVariablesContext();
-		String text = mapper.writeValueAsString(varInfo);
-		addContextInput("SystemVariablesContext", text);
+		String appendSystemVariablesContext = getCodeHelper().appendSystemVariablesContext();
+		addContextInput("SystemVariablesContext", appendSystemVariablesContext);
 
 		List<Class<?>> processorClasses = ClassUtils.findAssignable(Processor.class);
 		for (Class<?> processorClass : processorClasses) {
-			CommandProcessorInfo info = codeHelper.getProcessorInfo(processorClass);
-			text = mapper.writeValueAsString(info);
-			addContextInput(processorClass.getName(), text);
+			String input = codeHelper.appendProcessorInfo(processorClass);
+			addContextInput(processorClass.getName(), input);
 		}
 
 		List<Class<?>> viewNames = ClassUtils.findAssignable(View.class);
@@ -144,23 +133,6 @@ public class AIHelperDialog extends HelperDialog {
 
 	}
 
-	private void addContext(String name) {
-		String generalInfo;
-		try {
-			generalInfo = AEUtils.loadResource(name);
-			addContextInput(name, generalInfo);
-		} catch (Exception e) {
-			getLog().error("Resource: " + name + " not found.", e);
-		}
-	}
-
-	private ILogger getLog() {
-		if (log == null) {
-			log = getCodeHelper().getRecipePanel().createLog("Code Helper", true);
-		}
-		return log;
-	}
-
 	private void perform(final OpenAIClient client) {
 		new Thread(() -> {
 			try {
@@ -169,9 +141,6 @@ public class AIHelperDialog extends HelperDialog {
 				performRequest(client);
 				setVisible(false);
 
-			} catch (Exception e) {
-				getLog().error(e.getMessage());
-				getCodeHelper().showInvalidConfigurationError();
 			} finally {
 				perform.setText(REQUEST_BUTTON_TEXT);
 				perform.setEnabled(true);
@@ -179,9 +148,11 @@ public class AIHelperDialog extends HelperDialog {
 		}).start();
 	}
 
-	private void addContextInput(String name, String text) {
-		Message message = com.openai.models.responses.ResponseInputItem.Message.builder()
-				.role(com.openai.models.responses.ResponseInputItem.Message.Role.SYSTEM).addInputTextContent(text)
+	private void addContextInput(String name, String processorInfo) {
+		Message message = com.openai.models.responses.ResponseInputItem.Message
+				.builder()
+				.role(com.openai.models.responses.ResponseInputItem.Message.Role.SYSTEM)
+				.addInputTextContent(processorInfo)
 				.build();
 
 		contextMap.put(name, ResponseInputItem.ofMessage(message));
@@ -191,66 +162,50 @@ public class AIHelperDialog extends HelperDialog {
 		try {
 			TextEditor textEditor = getCodeHelper().getEditor();
 
-			List<ResponseInputItem> inputs = new ArrayList<>();
-
-			Collection<Entry<String, ResponseInputItem>> contextEntrySet = contextMap.entrySet();
-			for (Entry<String, ResponseInputItem> contextEntry : contextEntrySet) {
-				if (!StringUtils.contains(contextEntry.getKey(), OUTPUT_FORMAT_RESOURCE_NAME)) {
-					ResponseInputItem value = contextEntry.getValue();
-					String text = value.message().get().content().get(0).inputText().get().text();
-					getLog().debug(new AELogRecord(text, "txt", null));
-					inputs.add(value);
-				}
-			}
-
-			JsonMapper mapper = new JsonMapper();
-			com.ganteater.ai.model.Editor editorInfo = new Editor();
-			String text = textEditor.getText();
-			editorInfo.setContent(text);
-
 			int caretPosition = textEditor.getCaretPosition();
 			int selectionStart = textEditor.getSelectionStart();
 			int selectionEnd = textEditor.getSelectionEnd();
-			editorInfo.setCaretPosition(caretPosition);
 
-			Selection selection = new Selection();
-			selection.setStartPosition(selectionStart);
-			selection.setEndPosition(selectionEnd);
-			editorInfo.setSelection(selection);
-			try {
-				String source = mapper.writeValueAsString(editorInfo);
-				getLog().debug(new AELogRecord(source, "json", null));
+			List<ResponseInputItem> inputs = new ArrayList<>();
 
-				Message message = com.openai.models.responses.ResponseInputItem.Message.builder()
-						.role(com.openai.models.responses.ResponseInputItem.Message.Role.USER)
-						.addInputTextContent(source).build();
-
-				inputs.add(ResponseInputItem.ofMessage(message));
-
-				String prompt = this.editor.getText();
-				Message input = com.openai.models.responses.ResponseInputItem.Message.builder()
-						.role(com.openai.models.responses.ResponseInputItem.Message.Role.USER)
-						.addInputTextContent(prompt).build();
-
-				inputs.add(ResponseInputItem.ofMessage(input));
-				getLog().info(new AELogRecord(prompt, "txt", null));
-
-				Builder builder = ResponseCreateParams.builder().model(getCodeHelper().getChatModel())
-						.input(Input.ofResponse(inputs));
-
-				Response response = client.responses().create(builder.build());
-				logUsage(response.usage());
-
-				response.output().forEach(item -> {
-					if (item.isMessage()) {
-						List<com.openai.models.responses.ResponseOutputMessage.Content> content = item.asMessage()
-								.content();
-						performMessage(content);
-					}
-				});
-			} catch (JsonProcessingException e) {
-				throw new IllegalArgumentException(e);
+			Collection<ResponseInputItem> values = contextMap.values();
+			for (ResponseInputItem processorInfo : values) {
+				String text = processorInfo.message().get().content().get(0).inputText().get().text();
+				debug(new AELogRecord(text, "md", "Input"));
+				inputs.add(processorInfo);
 			}
+
+			String text = textEditor.getText();
+			Prompt prompt = new Prompt.Builder()
+					.source(text, "xml", caretPosition, selectionStart, selectionEnd)
+					.input(editor.getText())
+					.build();
+
+			String input = prompt.buildPrompt();
+			debug(new AELogRecord(input, "md", "Input"));
+
+			Message message = com.openai.models.responses.ResponseInputItem.Message
+					.builder()
+					.role(com.openai.models.responses.ResponseInputItem.Message.Role.USER)
+					.addInputTextContent(input)
+					.build();
+
+			inputs.add(ResponseInputItem.ofMessage(message));
+
+			String chatModel = getCodeHelper().getChatModel();
+			Builder builder = ResponseCreateParams.builder()
+					.model(chatModel)
+					.input(Input.ofResponse(inputs));
+
+			Response response = client.responses().create(builder.build());
+			logUsage(response.usage());
+
+			response.output().forEach(item -> {
+				if (item.isMessage()) {
+					List<Content> content = item.asMessage().content();
+					performMessage(content);
+				}
+			});
 
 		} catch (RateLimitException e) {
 			OptionPane.showMessageDialog(getCodeHelper().getRecipePanel().getFrame(), e.getLocalizedMessage(),
@@ -258,48 +213,42 @@ public class AIHelperDialog extends HelperDialog {
 		}
 	}
 
-	private void performMessage(List<com.openai.models.responses.ResponseOutputMessage.Content> content) {
+	private void performMessage(List<Content> content) {
 		String responseText = content.get(0).outputText().get().text();
-		getLog().debug(new AELogRecord(responseText, "xml", "Output"));
+		debug(new AELogRecord(responseText, "xml", "Output"));
 
 		getCodeHelper().hide();
 		updateCode(responseText);
 	}
 
 	private void updateCode(String responseText) {
-		JsonMapper mapper = new JsonMapper();
-		try {
-			JsonNode responseNode = mapper.readTree(responseText);
+		String code = StringUtils.substringBetween(responseText, "```xml\n", "```");
+		if (code == null) {
+			code = responseText;
+		}
 
-			TextEditor textEditor = getCodeHelper().getEditor();
-			String code = responseNode.get("generatedOutputRecipeCode").asText();
-			textEditor.setText(code);
-			if (StringUtils.isNotBlank(code)) {
-				textEditor.getRecipePanel().compileTask();
+		MarkerExtractResult mextract = Marker.extractAll(code);
+		int cursor = mextract.getPosition(Marker.CURSOR);
+		int start = mextract.getPosition(Marker.SELECTION_START);
+		int end = mextract.getPosition(Marker.SELECTION_END);
 
-				TaskEditor recipePanel = getCodeHelper().getEditor().getRecipePanel();
-				recipePanel.compileTask();
-				recipePanel.refreshTaskTree();
-				try {
-					JsonNode jsonNode = responseNode.get("caretPosition");
-					if (jsonNode != null) {
-						int cursor = Integer.parseInt(jsonNode.asText());
-						textEditor.setCaretPosition(cursor < 0 ? textEditor.getCaretPosition() : cursor);
-					}
-					JsonNode selection = responseNode.get("selection");
-					if (selection != null) {
-						int start = Integer.parseInt(selection.get("startPosition").asText());
-						int end = Integer.parseInt(selection.get("endPosition").asText());
-						textEditor.select(start, end);
-					}
-				} catch (IllegalArgumentException e1) {
-					textEditor.setCaretPosition(code.length());
+		TextEditor textEditor = getCodeHelper().getEditor();
+		textEditor.setText(mextract.getText());
+		if (StringUtils.isNotBlank(code)) {
+			textEditor.getRecipePanel().compileTask();
+
+			TaskEditor recipePanel = getCodeHelper().getEditor().getRecipePanel();
+			recipePanel.compileTask();
+			recipePanel.refreshTaskTree();
+			try {
+				textEditor.setCaretPosition(cursor < 0 ? textEditor.getCaretPosition() : cursor);
+				if (start > 0) {
+					textEditor.select(start, end);
 				}
-
+			} catch (IllegalArgumentException e1) {
+				textEditor.setCaretPosition(code.length());
 			}
-		} catch (JsonProcessingException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+
 		}
 	}
 
@@ -311,9 +260,14 @@ public class AIHelperDialog extends HelperDialog {
 			long outputTokens = optional.get().outputTokens();
 			long reasoningTokens = optional.get().outputTokensDetails().reasoningTokens();
 
-			getLog().debug(
-					String.format("Input: %1$d, cached: %2$d, output: %3$d, reasoning: %4$d tokens.", inputTokens,
-							inputCachedTokens, outputTokens, reasoningTokens));
+			debug(String.format("Input: %1$d, cached: %2$d, output: %3$d, reasoning: %4$d tokens.",
+					inputTokens, inputCachedTokens, outputTokens, reasoningTokens));
+		}
+	}
+
+	private void debug(Object message) {
+		if (getCodeHelper().isDebug()) {
+			getLog().debug(message);
 		}
 	}
 
@@ -330,6 +284,14 @@ public class AIHelperDialog extends HelperDialog {
 
 	public Object getProcessorDescription(Object processorName) {
 		return null;
+	}
+
+	private ILogger getLog() {
+		log = getCodeHelper().getEditor().getRecipePanel().getLogger();
+		if (log == null) {
+			log = getCodeHelper().getRecipePanel().createLog("Helper", true);
+		}
+		return log;
 	}
 
 	@Override

@@ -1,39 +1,11 @@
 <Recipe name="test">
-	<!-- Examples for all view type outputs --> 
-	<!-- BarChart example --> 
-	<View name="barView" reuse="true" type="BarChart" title="Bar Chart" xAxisLabel="x" yAxisLabel="y" /> 
-	<Loop name="loopBar" numbers="3">
-		<Rnd name="valueBar" symbols="3" type="number" /> 
-		<Out view="barView" row="$var{loopBar}" column="1" level="debug">$var{valueBar}</Out> 
-	</Loop> 
-	<!-- DialScale example --> 
-	<View name="dialView" reuse="true" type="DialScale" title="Dial Scale" /> 
-	<Loop name="loopDial" numbers="5">
-		<Rnd name="valueDial" symbols="3" type="number" /> 
-		<Out view="dialView" row="1" column="$var{loopDial}" level="debug">$var{valueDial}</Out> 
-		<Wait delay="100" /> 
-	</Loop> 
-	<!-- HTML view example (HTML tags must be escaped) --> 
-	<View name="htmlView" reuse="false" type="HTML" /> 
-	<Out view="htmlView">
-		&lt;html&gt;
-			&lt;h1&gt;HTML Test Page&lt;/h1&gt;
-			&lt;p&gt;This is a &lt;strong&gt;sample&lt;/strong&gt; HTML content for the HTML view.&lt;/p&gt;
-		&lt;/html&gt;
-	</Out> 
-	<!-- PieChart example --> 
-	<View name="pieView" reuse="true" type="PieChart" title="Pie Chart" /> 
-	<Loop name="slice" numbers="5">
-		<Rnd name="valuePie" symbols="3" type="number" /> 
-		<Out view="pieView" key="$var{slice}" level="debug">$var{valuePie}</Out> 
-	</Loop> 
-	<!-- Text view example --> 
-	<View name="textView" reuse="true" type="Text" /> 
-	<Out view="textView">Welcome to Text view example: simple textual output.</Out> 
-	<!-- XYLineChart example --> 
-	<View name="xyView" reuse="true" type="XYLineChart" title="XY Line Chart" xAxisLabel="x" yAxisLabel="y" /> 
-	<Loop name="xXY" numbers="10">
-		<Rnd name="valueXY" symbols="3" type="number" /> 
-		<Out view="xyView" level="debug" x="$var{xXY}">$var{valueXY}</Out> 
-	</Loop> 
+	<Extern class="CodeMie" username="$var{CodeMie Username}" password="$var{CodeMie Password}">
+		<WebSearch type="web_search_preview_2025_03_11" /> 
+		<Models name="CodeMie Models" /> 
+		<Var name="CodeMie Models" init="console" /> 
+		<Prompt name="response" model="$var{CodeMie Models}">
+           make a poem about https://ganteater.com
+        </Prompt> 
+		<Out name="response" /> 
+	</Extern> 
 </Recipe> 
