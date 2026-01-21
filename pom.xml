@@ -7,7 +7,7 @@
 	<parent>
 		<groupId>com.ganteater.plugins</groupId>
 		<artifactId>ae-plugins</artifactId>
-		<version>1.2.8</version>
+		<version>1.2.9-SNAPSHOT</version>
 		<relativePath></relativePath>
 	</parent>
 
@@ -70,14 +70,15 @@
 
 	<scm>
 		<connection>scm:git:https://github.com/ganteater/ai-ae-plugin.git</connection>
-		<developerConnection>scm:git:https://github.com/ganteater/ai-ae-plugin.git</developerConnection>
+		<developerConnection>
+			scm:git:https://github.com/ganteater/ai-ae-plugin.git</developerConnection>
 		<url>https://github.com/ganteater/ai-ae-plugin</url>
 	</scm>
 
 	<issueManagement>
 		<url>https://github.com/ganteater/ai-ae-plugin/issues</url>
 	</issueManagement>
-	
+
 	<developers>
 		<developer>
 			<name>Viktor Tovstyi</name>

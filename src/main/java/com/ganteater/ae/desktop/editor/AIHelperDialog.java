@@ -200,8 +200,9 @@ public class AIHelperDialog extends HelperDialog {
 
 			inputs.add(ResponseInputItem.ofMessage(message));
 
+			String chatModel = getCodeHelper().getChatModel();
 			Builder builder = ResponseCreateParams.builder()
-					.model(getCodeHelper().getChatModel())
+					.model(chatModel)
 					.input(Input.ofResponse(inputs));
 
 			Response response = client.responses().create(builder.build());

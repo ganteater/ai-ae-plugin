@@ -7,10 +7,9 @@ import java.util.Set;
 
 import org.apache.commons.lang.StringUtils;
 
+import com.ganteater.ae.processor.CommandInfo;
 import com.ganteater.ae.processor.Processor;
 import com.ganteater.ae.processor.annotation.CommandDescription;
-import com.ganteater.ae.processor.annotation.CommandInfo;
-import com.ganteater.ae.util.AEUtils;
 import com.ganteater.ae.util.xml.easyparser.Node;
 import com.openai.client.OpenAIClient;
 import com.openai.client.okhttp.OpenAIOkHttpClient;
@@ -24,22 +23,29 @@ public class AICodeHelper extends CodeHelper {
 		super(textEditor);
 
 		TaskEditor recipeEditor = getRecipePanel();
-		Processor taskProcessor = recipeEditor.getTaskProcessor();
+		Processor taskProcessor = recipeEditor.getProcessor();
 
 		Node editorNode = recipeEditor.getEditor().getEditorNode();
 
-		chatModel = StringUtils.defaultIfEmpty(taskProcessor.attr(editorNode, "model"), "gpt-5-mini");
+		String model = taskProcessor.attr(editorNode, "model");
+		chatModel = StringUtils.defaultIfEmpty(model, "gpt-5-mini");
 		debug = Boolean.parseBoolean(taskProcessor.attr(editorNode, "debug", "false"));
 
+		OpenAIClient client = createClient(taskProcessor, editorNode);
+
+		AIHelperDialog aiHelperDialog = new AIHelperDialog(this, client);
+		super.setDefaultDialog(aiHelperDialog);
+	}
+
+	protected OpenAIClient createClient(Processor taskProcessor, Node editorNode) throws IOException {
 		String apiKey = taskProcessor.attr(editorNode, "apiKey");
 		if (apiKey == null) {
 			throw new IllegalArgumentException("apiKey attribute required.");
 		}
 
-		OpenAIClient client = OpenAIOkHttpClient.builder().apiKey(apiKey).build();
-
-		AIHelperDialog aiHelperDialog = new AIHelperDialog(this, client);
-		super.setDefaultDialog(aiHelperDialog);
+		String baseUrl = taskProcessor.attr(editorNode, "baseUrl");
+		OpenAIClient client = OpenAIOkHttpClient.builder().apiKey(apiKey).baseUrl(baseUrl).build();
+		return client;
 	}
 
 	public String appendProcessorInfo(Class<?> clazz) {
@@ -64,7 +70,6 @@ public class AICodeHelper extends CodeHelper {
 				contextBuilder.append("Description: " + description + "\n\n");
 			}
 			fillExampes(contextBuilder, cominfo);
-			fillResources(contextBuilder, cominfo);
 		}
 
 		return contextBuilder.toString();
@@ -81,21 +86,6 @@ public class AICodeHelper extends CodeHelper {
 		}
 
 		return contextBuilder.toString();
-	}
-
-	private void fillResources(StringBuilder builder, CommandInfo cominfo) {
-		String[] resources = cominfo.getResources();
-		if (resources != null && resources.length > 0) {
-			for (String resource : resources) {
-				try {
-					String reference = AEUtils.loadResource(resource);
-					builder.append(reference);
-				} catch (Exception e) {
-					getRecipePanel().getLogger().error("Resource: " + resource + " not found.");
-				}
-			}
-			builder.append("\n\n");
-		}
 	}
 
 	private void fillExampes(StringBuilder builder, CommandInfo cominfo) {
@@ -124,8 +114,7 @@ public class AICodeHelper extends CodeHelper {
 
 		code = code.replace("'", "\"");
 		if (StringUtils.contains(example, "\n")) {
-			context.append(description + "\n"
-					+ "```xml\n" + code + "\n```\n");
+			context.append(description + "\n" + "```xml\n" + code + "\n```\n");
 		} else {
 			context.append("- " + description + "`" + code + "`\n");
 		}
