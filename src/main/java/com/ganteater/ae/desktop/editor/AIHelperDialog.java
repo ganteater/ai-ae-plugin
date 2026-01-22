@@ -68,7 +68,7 @@ public class AIHelperDialog extends HelperDialog {
 		setUndecorated(true);
 
 		editor.setTabSize(2);
-		editor.setBorder(BorderFactory.createEmptyBorder(4, 4, 4, 4));
+		editor.setBorder(BorderFactory.createEmptyBorder(2, 2, 2, 2));
 		editor.setLineWrap(true);
 		editor.setWrapStyleWord(true);
 

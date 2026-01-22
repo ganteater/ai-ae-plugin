@@ -1,198 +1,71 @@
 ![](src/site/resources/images/ai-ae-plugin.png)
 
-# IA Anteater Plugin
+# AI Anteater Plugin
 
-The **AI-AE-Plugin** is an Anteater plugin that introduces support for AI-powered workflows by integrating with Large Language Models (LLMs) like OpenAI GPT. This plugin enables users to generate content dynamically within Anteater recipes and provides command processors.
+[![Maven Central](https://img.shields.io/maven-central/v/org.machanism.machai/machai.svg)](https://central.sonatype.com/artifact/org.machanism.machai/machai)
 
-> The AI-AE-Plugin currently supports integration exclusively with OpenAI's Large Language Models (LLMs).
+## Overview
 
-**Features**:
+AI Anteater Plugin is an Anteater (AE) plugin that adds AI-assisted capabilities to AE recipes and the AE Desktop editor.
 
-- **AI-Powered Recipe Code Generation**:
-		Use the `<Editor helper="AICodeHelper" apiKey="$var{OPENAI_API_KEY}"/>` configuration to interact with LLMs and generate recipe code.
-- **AI-Powered Content Generation**:
-		Use the commands LLM plugin processors to interact with LLMs and generate text-based responses.
-- **Customizable Models**:
-		Specify the model (e.g., `gpt-5`) to tailor the response to your needs.
-- **Seamless Integration**:
-		Easily integrate AI responses into your Anteater workflows using variables and output commands.
+It provides:
+
+- An **OpenAI-backed recipe processor** that can send prompts (messages) to OpenAI-compatible APIs and store the response into AE properties.
+- Support for **tool/function calling** from the model back into AE recipes via `<Function>` + `<Task>`.
+- A **Web Search tool** configuration for models that support web search tools.
+- An **AE Desktop editor helper dialog** that builds a structured prompt from the current editor content (including caret/selection markers) plus context about available AE processors, views, and system variables, and then applies the model output back into the editor.
+
+## Introduction
+
+This module integrates AI into the Anteater ecosystem in two ways:
+
+1. **At runtime (recipes):** the `OpenAI` processor accepts a `<Prompt>` command with one or more `<message>` blocks (role-based), submits them via the OpenAI Java SDK `responses` API, and stores the returned output text into a named AE property. It can also register tools such as `<Function>` (implemented as function tools) and `<WebSearch>` (implemented as web search tools). When the model requests a function call, the processor maps the call to the matching `<Function>` node, copies arguments into AE variables, executes the function’s `<Task>` nodes, and returns the produced value back to the model.
+
+2. **In the desktop editor:** `AICodeHelper` and `AIHelperDialog` assemble a prompt that includes the current document source with special markers for cursor/selection (`Marker.CURSOR`, `Marker.SELECTION_START`, `Marker.SELECTION_END`) via `Prompt`, plus extra context such as processor command descriptions/examples and system variable names. The helper then sends the request to the configured model and updates the editor content with the response.
 
 ## Prerequisites
 
-1. Install Java 8+.
-2. Install Anteater[^1], see: [Run Anteater, Run](https://ganteater.com/run-anteater-run.html).
-3. To use the AI-AE-Plugin, you can either download the JAR file directly or add it as a Maven dependency to your project.
-	- Download the Plugin: [AI Anteater Plugin](https://sourceforge.net/projects/anteater/files/plugins/ai-ae-plugin.jar/download)
-	- Or add as Maven Dependency:  
-		You can include the plugin in your Maven project by adding the following dependency to your `pom.xml` file:
-		```xml
-		<dependency>
-			  <groupId>com.ganteater.plugins</groupId>
-			  <artifactId>ai-ae-plugin</artifactId>
-			  <version>latest_version</version>
-		 </dependency>
-		 ```
-		[![Maven Central](https://img.shields.io/maven-central/v/com.ganteater.plugins/ai-ae-plugin.svg)](https://central.sonatype.com/artifact/com.ganteater.plugins/ai-ae-plugin)
-4. Install other plugins (optional), see: [Anteater Plugins](https://ganteater.com/ae-plugins/index.html)
-5. OpenAI API Key:
-	- Ensure you have a valid OpenAI API key.[^2]
+### 1) Java
 
-## AI Code Helper
+- Java **9** (as configured by `pom.xml` `java.version=9`).
 
-### Configuration
+### 2) Maven
 
-To use the **AI Code Helper** feature, you need to add the `<Editor>` configuration tag in your Anteater configuration file (`ae.xml`). This enables the integration with AI-powered tools like OpenAI for code assistance.
+- Maven project; build with standard Maven lifecycle.
 
-> Note: AICodeHelper only works with the [desktop version of Anteater](https://ganteater.com/anteater-desktop/index.html).
+### 3) OpenAI Java SDK dependency
 
-Example Configuration:
+This module depends on:
 
-Below is an example of how to configure the AI Code Helper in `ae.xml`:
+- `com.openai:openai-java:4.8.0`
 
-```xml
-<Environment>
-	<Configuration name="My Configuration">
-		<!-- Define the OpenAI API Key -->
-		<Var name="OPENAI_API_KEY" init="console" type="password" />
+### 4) API access (required)
 
-		<!-- Enable AI Code Helper -->
-		<Editor helper="AICodeHelper" apiKey="$var{OPENAI_API_KEY}"/>
-	</Configuration>
-</Environment>
-```
+You must provide an API key for OpenAI or an OpenAI-compatible provider.
 
-Editor attributes:
+In AE configuration/recipe XML, the `OpenAI` processor initialization requires:
 
-- The `helper="AICodeHelper"` attribute specifies the AI Code Helper to enable.
-- The `apiKey` attribute specifies the apiKey to authenticate OpenAI requests.
-- The `model` specifies the OpenAI model to use. Supported values:
-  - `gpt-5`
-  - `gpt-5-mini` (default)
-- The `debug` enables debug mode for logging additional information during LLM request execution (optional).
-
-With this configuration, Anteater is ready to leverage AI capabilities for code assistance, enhancing your workflows with intelligent suggestions and automation.
-
-### How to Use
-
-1. Open the Recipe Editor:  
-	Start by opening the recipe editor in your Anteater environment.
-
-2. Activate Code Helper:  
-	- Press `Ctrl+Space` or right-click and select **`Code Helper`** from the popup menu.
-	- Ensure the cursor is not positioned directly after `<` or on a tag name. Otherwise, the [command helper](https://ganteater.com/anteater-desktop/command-helper.html) will be displayed instead.
-
-3. Input you prompt (e.g.: `create an example of using the Web and the OpenAI processor with their commands`) and click `Perform` button.
-
-	![Code Helper](src/site/resources/images/ai-code-helper.png) 
-
-4. Review the generated [code](src/manual-test/ae/recipes/Web%20And%20OpenAI%20Example.recipe) and try to run.
-
-This feature simplifies the process of writing recipes and ensures accurate syntax and command usage.
-
-[![Video Title](https://img.youtube.com/vi/bt8eS8iDjsc/0.jpg)](https://www.youtube.com/watch?v=bt8eS8iDjsc)
-
-## LLM Command Processors
-
-### Command Processor: OpenAI
-
-The **OpenAI processor** is the core component of this plugin, allowing Anteater recipes to call OpenAI services seamlessly. It supports commands for generating responses and managing conversations using OpenAI's models.
-
-Fully Qualified Class Name: `com.ganteater.ae.processor.OpenAI`.
+- `apiKey` (required)
+- `model` (optional, defaults to `gpt-5-mini`)
+- `baseUrl` (optional; set this for OpenAI-compatible endpoints)
 
 Example:
 
 ```xml
-<Extern class="OpenAI" apiKey="$var{OPENAI_API_KEY}" model="gpt-5-mini">
-	<!-- commands -->
-</Extern>
+<Extern class="OpenAI" model="gpt-5-mini" apiKey="${OPENAI_API_KEY}" baseUrl="https://api.openai.com/v1" />
 ```
 
-#### Supported Commands
+### 5) Optional: CodeMie credentials (if using CodeMie)
 
-##### Command: `<Prompt>`
-The `<Prompt>` command is used to send a query to an LLM and store the generated response in a variable. This command is highly flexible and can be used in a variety of scenarios, such as content generation, summarization, or creative tasks.
+If you use the `CodeMie` processor, initialization requires:
 
-Attributes:
+- `username`
+- `password`
 
-- **`name`**:
-		Defines the variable name where the LLM's response will be stored.
-- **Text Content**:
-		The content inside the `<Prompt>` tag is the query or instruction sent to the LLM.
+It will exchange them for a token and then configure `apiKey`/`baseUrl` internally.
 
-Example Usage:
-
-Below is an example recipe that demonstrates how to use the `<Prompt>` command with the AI-AE-Plugin to generate a short poem about the beauty of nature.
+Example:
 
 ```xml
-<Prompt name="AI_PROMPT_RESPONSE">
-	Please rewrite the poem as a 4-line version using simpler language and an uplifting tone while keeping vivid imagery.
-</Prompt>
-<Out name="AI_PROMPT_RESPONSE" />
+<Extern class="CodeMie" username="${CODEMIE_USERNAME}" password="${CODEMIE_PASSWORD}" />
 ```
-
-```xml
-<Prompt name="responseText">
-	<message role="system">You are a helpful poet that writes concise, imagery-rich poems.</message>
-	<message role="user">Write a short poem about the beauty of nature.</message>
-</Prompt>
-<Out name="responseText" level="info" />
-```
-
-##### Command: `<Function>`
-
-The `<Function>` command is used to create a **Function Tool** in Anteater. This command defines a custom function that can be executed during recipe execution. It allows you to specify inputs, outputs, and the logic for the function, making it a powerful way to encapsulate reusable operations.
-
-Attributes:
-
-- **`name`**:  
-  Defines the name of the function. This name is used to call the function during execution.
-
-- **`description`**:  
-  A short description of what the function does. This is useful for documenting the purpose of the function.
-
-- **`type`**:  
-  Specifies the type of data the function returns (e.g., `object`, `string`, `number`, etc.).
-
-- **`return`**:  
-  The variable name where the function's result will be stored after execution.
-
-Child Elements:
-
-- **`<property>`**:  
-  Defines the input parameters for the function. Each property includes:
-  - **`name`**: The name of the parameter.
-  - **`type`**: The data type of the parameter (e.g., `string`, `number`, etc.).
-  - **`required`**: Indicates whether this parameter is mandatory (`true` or `false`).
-
-- **`<Task>`**:  
-  Specifies the implementation of the function. Within the `<Task>` block, you can define variables, perform operations, and output results.
-
-Example Usage:
-
-Below is an example recipe that demonstrates how to use the `<Function>` command to create a tool that retrieves mock weather information for a given city.
-
-```xml
-<Function name="get-weather" description="Get current weather for a city" type="object" return="weatherResult">
-	<property name="city" type="string" required="true" />
-	<Task>
-		<!-- Mock implementation: set weatherResult property -->
-		<Var name="weatherResult">{ "city": "$var{city}", "forecast": "sunny" }</Var>
-		<Out name="city" level="info" />
-		<Out name="weatherResult" level="info" />
-	</Task>
-</Function>
-```
-
-Other Examples:
-
-Here are additional examples of recipes that demonstrate the use of the `<Function>` command and related tools:
-
-- [Create Note](src/manual-test/ae/recipes/Create%20Note.recipe): This recipe showcases how to use the `<Function>` command to create and manage notes dynamically.
-- [Function Tool Test](src/manual-test/ae/recipes/Function%20Tool%20Test.recipe): This recipe provides a comprehensive test of the Function Tool, including parameter handling, task execution, and output generation.
-
-These examples can help you better understand how to implement and utilize the `<Function>` command in your own Anteater recipes.
-
-[^1]: Anteater Documentation: [http://ganteater.com](http://ganteater.com)
-[^2]: OpenAI API Documentation: [https://platform.openai.com/docs/](https://platform.openai.com/docs/)
-
-
