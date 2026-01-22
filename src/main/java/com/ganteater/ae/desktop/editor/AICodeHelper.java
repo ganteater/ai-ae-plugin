@@ -1,9 +1,11 @@
 package com.ganteater.ae.desktop.editor;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.commons.lang.StringUtils;
 
@@ -11,6 +13,8 @@ import com.ganteater.ae.processor.CommandInfo;
 import com.ganteater.ae.processor.Processor;
 import com.ganteater.ae.processor.annotation.CommandDescription;
 import com.ganteater.ae.util.xml.easyparser.Node;
+import com.ganteater.ai.model.CommandProcessorInfo;
+import com.ganteater.ai.model.VariableReport;
 import com.openai.client.OpenAIClient;
 import com.openai.client.okhttp.OpenAIOkHttpClient;
 
@@ -48,33 +52,6 @@ public class AICodeHelper extends CodeHelper {
 		return client;
 	}
 
-	public String appendProcessorInfo(Class<?> clazz) {
-		StringBuilder contextBuilder = new StringBuilder();
-
-		contextBuilder.append("# Command Processor: " + clazz + "\n\n");
-		CommandDescription descriptionAnnotation = clazz.getAnnotation(CommandDescription.class);
-		if (descriptionAnnotation != null) {
-			contextBuilder.append(descriptionAnnotation.value() + "\n\n");
-		}
-
-		List<CommandInfo> commandList = super.getCommandList(null, clazz);
-
-		for (CommandInfo cominfo : commandList) {
-			if (!cominfo.getName().equals("init")) {
-				contextBuilder.append("### Command `" + cominfo.getName() + "`\n\n");
-			} else {
-				contextBuilder.append("### Processor Initialization\n\n");
-			}
-			String description = cominfo.getDescription();
-			if (StringUtils.isNotEmpty(description)) {
-				contextBuilder.append("Description: " + description + "\n\n");
-			}
-			fillExampes(contextBuilder, cominfo);
-		}
-
-		return contextBuilder.toString();
-	}
-
 	public String appendViewInfo(Class<?> clazz) {
 		StringBuilder contextBuilder = new StringBuilder();
 
@@ -88,51 +65,19 @@ public class AICodeHelper extends CodeHelper {
 		return contextBuilder.toString();
 	}
 
-	private void fillExampes(StringBuilder builder, CommandInfo cominfo) {
-		List<String> examples = cominfo.getExamples();
-		if (!examples.isEmpty()) {
-			builder.append("Examples:\n\n");
-			int i = 1;
-			StringBuilder examplesInfo = new StringBuilder();
-			for (String example : examples) {
-				appendExample(examplesInfo, i++, example);
-			}
-			builder.append(examplesInfo.toString());
-			builder.append("\n\n");
-		}
-	}
-
-	private void appendExample(StringBuilder context, int i, String example) {
-		String code = example;
-		String description = "";
-		int colonIndex = StringUtils.indexOf(example, ':');
-		int startTagIndex = StringUtils.indexOf(example, '<');
-		if (colonIndex >= 0 && colonIndex < startTagIndex) {
-			code = StringUtils.substring(example, colonIndex + 1);
-			description = StringUtils.substring(example, 0, colonIndex + 1);
-		}
-
-		code = code.replace("'", "\"");
-		if (StringUtils.contains(example, "\n")) {
-			context.append(description + "\n" + "```xml\n" + code + "\n```\n");
-		} else {
-			context.append("- " + description + "`" + code + "`\n");
-		}
-	}
-
-	public String appendSystemVariablesContext() {
+	public VariableReport appendSystemVariablesContext() {
 		Map<String, Object> startVariables = getRecipePanel().getManager().getSystemVariables();
-		StringBuilder builder = new StringBuilder();
-		builder.append("# System Variable Names\n\n");
+
+		VariableReport result = new VariableReport();
+		result.setScope("SystemVariables");
 
 		Set<String> keySet = startVariables.keySet();
-		int i = 1;
-		StringBuilder sysvarInfo = new StringBuilder();
+		List<String> arrayList = new ArrayList<>();
 		for (String name : keySet) {
-			sysvarInfo.append((i++) + ". " + name + "\n");
+			arrayList.add(name);
 		}
-		builder.append(sysvarInfo.toString() + "\n\n");
-		return builder.toString();
+		result.setVariables(arrayList);
+		return result;
 	}
 
 	public String getChatModel() {
@@ -141,6 +86,28 @@ public class AICodeHelper extends CodeHelper {
 
 	public boolean isDebug() {
 		return debug;
+	}
+
+	public CommandProcessorInfo getProcessorInfo(Class<?> processorClass) {
+		CommandProcessorInfo result = new CommandProcessorInfo();
+
+		result.setClass_(processorClass.getName());
+		CommandDescription descriptionAnnotation = processorClass.getAnnotation(CommandDescription.class);
+		if (descriptionAnnotation != null) {
+			result.setDescription(descriptionAnnotation.value());
+		}
+
+		List<CommandInfo> commandList = super.getCommandList(null, processorClass);
+		List<com.ganteater.ai.model.CommandInfo> arrayList = commandList.stream().map(item -> {
+			com.ganteater.ai.model.CommandInfo commandInfo = new com.ganteater.ai.model.CommandInfo();
+			commandInfo.setCommandName(item.getName());
+			commandInfo.setDescription(item.getDescription());
+			commandInfo.setUsecases(item.getExamples());
+			return commandInfo;
+		}).collect(Collectors.toList());
+		result.setCommands(arrayList);
+
+		return result;
 	}
 
 }

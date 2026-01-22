@@ -141,9 +141,9 @@ public class OpenAI extends BaseProcessor {
 	@CommandDescription("Function command to create a function tool. Property tags define the properties of the function tool. "
 			+ "The Task command is called when the model requests the function.")
 	@CommandExamples({
-			"<Function name='type:string' description='type:string' type='enum:string|number|boolean|object|array' return='type:proprty'>"
+			"<Function name='type:string' description='type:string' type='enum:string|number|boolean|object|array' return='type:property'>"
 					+ "<property name='type:string' type='type:string' required='type:boolean'/>"
-					+ "<Task>...recipe code...</Task>" + "</Function>" })
+					+ "<Task>\n<Var name='return' value='...'/>\n</Task>" + "</Function>" })
 	public void runCommandFunction(Node action) {
 		String name = attr(action, "name");
 		String description = attr(action, "description");

@@ -7,6 +7,10 @@
 			"type": "string",
 			"description": "The name of the command processor."
 		},
+		"description": {
+			"type": "string",
+			"description": "The description of the command processor."
+		},
 		"class": {
 			"type": "string",
 			"description": "The name of the command processor class."
