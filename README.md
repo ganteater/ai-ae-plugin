@@ -6,66 +6,109 @@
 
 ## Overview
 
-AI Anteater Plugin is an Anteater (AE) plugin that adds AI-assisted capabilities to AE recipes and the AE Desktop editor.
-
-It provides:
-
-- An **OpenAI-backed recipe processor** that can send prompts (messages) to OpenAI-compatible APIs and store the response into AE properties.
-- Support for **tool/function calling** from the model back into AE recipes via `<Function>` + `<Task>`.
-- A **Web Search tool** configuration for models that support web search tools.
-- An **AE Desktop editor helper dialog** that builds a structured prompt from the current editor content (including caret/selection markers) plus context about available AE processors, views, and system variables, and then applies the model output back into the editor.
+AI Anteater Plugin is an Anteater (AE) plugin that integrates OpenAI/OpenAI-compatible services into AE recipes via custom processors.
 
 ## Introduction
 
-This module integrates AI into the Anteater ecosystem in two ways:
+This module adds AE processors that let you call AI models from within an AE recipe:
 
-1. **At runtime (recipes):** the `OpenAI` processor accepts a `<Prompt>` command with one or more `<message>` blocks (role-based), submits them via the OpenAI Java SDK `responses` API, and stores the returned output text into a named AE property. It can also register tools such as `<Function>` (implemented as function tools) and `<WebSearch>` (implemented as web search tools). When the model requests a function call, the processor maps the call to the matching `<Function>` node, copies arguments into AE variables, executes the function’s `<Task>` nodes, and returns the produced value back to the model.
-
-2. **In the desktop editor:** `AICodeHelper` and `AIHelperDialog` assemble a prompt that includes the current document source with special markers for cursor/selection (`Marker.CURSOR`, `Marker.SELECTION_START`, `Marker.SELECTION_END`) via `Prompt`, plus extra context such as processor command descriptions/examples and system variable names. The helper then sends the request to the configured model and updates the editor content with the response.
+- **`OpenAI` processor**: sends prompts (one or more `<message>` items) to the OpenAI Responses API and stores the resulting text into an AE property.
+- **Function tools (`<Function>`)**: declare JSON-schema-like parameters and allow the model to request tool execution; the plugin runs the nested AE `<Task>` and returns its output to the model as a function-call result.
+- **Model listing (`<Models>`)**: retrieves available model IDs and stores them into an AE property.
+- **Web search tool (`<WebSearch>`)**: registers a web-search tool (optionally with approximate user location) for model calls.
+- **`CodeMie` processor**: obtains an access token from CodeMie credentials and then uses an OpenAI-compatible workflow.
 
 ## Prerequisites
 
-### 1) Java
+### Java and Maven
 
-- Java **9** (as configured by `pom.xml` `java.version=9`).
+- **Java 9** (per `pom.xml` `java.version`)
+- Maven running on a JDK that supports Java 9
 
-### 2) Maven
+### Build and dependencies
 
-- Maven project; build with standard Maven lifecycle.
+This module pulls dependencies via Maven, including:
 
-### 3) OpenAI Java SDK dependency
+- `com.openai:openai-java` (OpenAI Java SDK)
 
-This module depends on:
+Build the project:
 
-- `com.openai:openai-java:4.8.0`
+```bash
+mvn -q -DskipTests package
+```
 
-### 4) API access (required)
+### AE integration
 
-You must provide an API key for OpenAI or an OpenAI-compatible provider.
+This module is intended to be used as an AE plugin and configured from an AE recipe using `<Extern class='...'>`.
 
-In AE configuration/recipe XML, the `OpenAI` processor initialization requires:
+### Credentials
+
+#### OpenAI (or OpenAI-compatible)
+
+Provide:
 
 - `apiKey` (required)
-- `model` (optional, defaults to `gpt-5-mini`)
-- `baseUrl` (optional; set this for OpenAI-compatible endpoints)
+- `baseUrl` (optional; for OpenAI-compatible endpoints)
+- `model` (optional; defaults to `gpt-5-mini`)
 
 Example:
 
 ```xml
-<Extern class="OpenAI" model="gpt-5-mini" apiKey="${OPENAI_API_KEY}" baseUrl="https://api.openai.com/v1" />
+<Extern class='OpenAI' apiKey='${OPENAI_API_KEY}' model='gpt-5-mini' baseUrl='https://api.openai.com/v1'/>
 ```
 
-### 5) Optional: CodeMie credentials (if using CodeMie)
+#### CodeMie (optional)
 
-If you use the `CodeMie` processor, initialization requires:
+Provide:
 
 - `username`
 - `password`
 
-It will exchange them for a token and then configure `apiKey`/`baseUrl` internally.
-
 Example:
 
 ```xml
-<Extern class="CodeMie" username="${CODEMIE_USERNAME}" password="${CODEMIE_PASSWORD}" />
+<Extern class='CodeMie' username='${CODEMIE_USERNAME}' password='${CODEMIE_PASSWORD}'/>
 ```
+
+## Basic usage
+
+### Prompt
+
+`<Prompt>` collects one or more messages and writes the resulting response text into the AE property specified by `name`:
+
+```xml
+<Prompt name='ai.result'>
+  <message role='user'>Summarize: ${text}</message>
+</Prompt>
+```
+
+### Function tool + Task
+
+Declare a tool the model can call, map its arguments into AE properties, execute an AE `<Task>`, and return a value back to the model:
+
+```xml
+<Function name='make_note' description='Create a note' type='object' return='noteId'>
+  <property name='title' type='string' required='true'/>
+  <property name='body' type='string' required='true'/>
+  <Task>
+    <!-- implement your AE automation here -->
+    <Var name='noteId' value='12345'/>
+  </Task>
+</Function>
+```
+
+### WebSearch tool
+
+```xml
+<WebSearch type='web_search_preview_2025_03_11' city='Kyiv' country='UA' region='Kyiv'/>
+```
+
+### Models
+
+```xml
+<Models name='ai.models'/>
+```
+
+## License
+
+Apache License 2.0. See [LICENSE.txt](LICENSE.txt).
