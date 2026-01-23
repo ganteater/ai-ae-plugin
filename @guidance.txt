@@ -9,11 +9,13 @@ In the project root directory, ensure the following files are present and proper
 **README.md**
 1. **Project Title and Overview:**  
    - Add `![](src/site/resources/images/ai-ae-plugin.png)` before the title.
-   - Add `[![Maven Central](https://img.shields.io/maven-central/v/org.machanism.machai/machai.svg)](https://central.sonatype.com/artifact/org.machanism.machai/machai)` after the title as a new paragraph.
-3. **Introduction**
+   - Add `[![Maven Central](https://img.shields.io/maven-central/v/[groupId]/[artifactId].svg)](https://central.sonatype.com/artifact/[groupId]/[artifactId])` 
+       after the title as a new paragraph. [groupId] and [artifactId] need to use from pom.xml.
+2. **Introduction**
    - Analyze the source code and write an introduction based on the functionality of the source code.
-4. **Prerequisites**
+3. **Prerequisites**
    - Based on the `pom.xml` file, detailed information about the necessary actions to use the plugin is generated.
+   
 **Formatting Requirements:**
 - Use Markdown syntax for headings, lists, code blocks, and links.
 - Ensure clarity and conciseness in each section.
