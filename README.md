@@ -6,40 +6,45 @@
 
 ## Overview
 
-AI Anteater Plugin is an Anteater (AE) plugin that integrates OpenAI/OpenAI-compatible services into AE recipes via custom processors.
+AI Anteater Plugin provides Anteater (AE) processors and desktop tooling that let AE recipes call OpenAI/OpenAI-compatible chat models, optionally expose AE Tasks as callable “function tools”, and persist results back into AE variables/properties.
 
 ## Introduction
 
-This module adds AE processors that let you call AI models from within an AE recipe:
+This module adds AI-oriented processors that can be referenced from AE recipes via `<Extern class="...">` and then used as regular AE commands:
 
-- **`OpenAI` processor**: sends prompts (one or more `<message>` items) to the OpenAI Responses API and stores the resulting text into an AE property.
-- **Function tools (`<Function>`)**: declare JSON-schema-like parameters and allow the model to request tool execution; the plugin runs the nested AE `<Task>` and returns its output to the model as a function-call result.
-- **Model listing (`<Models>`)**: retrieves available model IDs and stores them into an AE property.
-- **Web search tool (`<WebSearch>`)**: registers a web-search tool (optionally with approximate user location) for model calls.
-- **`CodeMie` processor**: obtains an access token from CodeMie credentials and then uses an OpenAI-compatible workflow.
+- **`OpenAI` processor**: executes OpenAI-compatible chat-completions using a list of `<message>` items and writes the final text response into an AE property.
+- **`CodeMie` processor**: authenticates against a CodeMie server and performs OpenAI-compatible model calls.
+- **Tools for model calls**:
+  - **Function tools (`<Function>`)**: declare a tool name/description and input properties (JSON-schema-like). When the model requests a tool call, the plugin runs the nested AE `<Task>` and returns its output back to the model.
+  - **`<WebSearch>` tool**: registers a web-search tool for model calls (optionally with approximate user location fields).
+- **`<Models>`**: requests available model IDs and stores them into an AE property.
 
 ## Prerequisites
 
-### Java and Maven
+### Java
 
-- **Java 9** (per `pom.xml` `java.version`)
-- Maven running on a JDK that supports Java 9
+- **Java 9** (per `pom.xml` `java.version`). Ensure your `JAVA_HOME` points to a JDK 9+ installation.
 
-### Build and dependencies
+### Maven
 
-This module pulls dependencies via Maven, including:
+- Use Maven with a JDK that supports Java 9.
 
-- `com.openai:openai-java` (OpenAI Java SDK)
+### Dependency resolution
 
-Build the project:
+Building requires downloading dependencies from Maven repositories, including:
+
+- `com.openai:openai-java:4.8.0`
+
+Build:
 
 ```bash
 mvn -q -DskipTests package
 ```
 
-### AE integration
+### Using as an Anteater (AE) plugin
 
-This module is intended to be used as an AE plugin and configured from an AE recipe using `<Extern class='...'>`.
+1. Build or install the plugin artifact.
+2. Configure it in your AE runtime/recipe using `<Extern class="...">` and then call the provided commands in your recipe.
 
 ### Credentials
 
@@ -49,12 +54,12 @@ Provide:
 
 - `apiKey` (required)
 - `baseUrl` (optional; for OpenAI-compatible endpoints)
-- `model` (optional; defaults to `gpt-5-mini`)
+- `model` (optional; defaults depend on processor configuration)
 
 Example:
 
 ```xml
-<Extern class='OpenAI' apiKey='${OPENAI_API_KEY}' model='gpt-5-mini' baseUrl='https://api.openai.com/v1'/>
+<Extern class="OpenAI" apiKey="$var{OPENAI_API_KEY}" model="gpt-5-mini" baseUrl="https://api.openai.com/v1"/>
 ```
 
 #### CodeMie (optional)
@@ -67,7 +72,7 @@ Provide:
 Example:
 
 ```xml
-<Extern class='CodeMie' username='${CODEMIE_USERNAME}' password='${CODEMIE_PASSWORD}'/>
+<Extern class="CodeMie" username="$var{CODEMIE_USERNAME}" password="$var{CODEMIE_PASSWORD}"/>
 ```
 
 ## Basic usage
@@ -77,8 +82,8 @@ Example:
 `<Prompt>` collects one or more messages and writes the resulting response text into the AE property specified by `name`:
 
 ```xml
-<Prompt name='ai.result'>
-  <message role='user'>Summarize: ${text}</message>
+<Prompt name="ai.result">
+  <message role="user">Summarize: $var{text}</message>
 </Prompt>
 ```
 
@@ -87,12 +92,12 @@ Example:
 Declare a tool the model can call, map its arguments into AE properties, execute an AE `<Task>`, and return a value back to the model:
 
 ```xml
-<Function name='make_note' description='Create a note' type='object' return='noteId'>
-  <property name='title' type='string' required='true'/>
-  <property name='body' type='string' required='true'/>
+<Function name="make_note" description="Create a note" type="object" return="noteId">
+  <property name="title" type="string" required="true"/>
+  <property name="body" type="string" required="true"/>
   <Task>
     <!-- implement your AE automation here -->
-    <Var name='noteId' value='12345'/>
+    <Var name="noteId" value="12345"/>
   </Task>
 </Function>
 ```
@@ -100,13 +105,13 @@ Declare a tool the model can call, map its arguments into AE properties, execute
 ### WebSearch tool
 
 ```xml
-<WebSearch type='web_search_preview_2025_03_11' city='Kyiv' country='UA' region='Kyiv'/>
+<WebSearch type="web_search_preview_2025_03_11" city="Kyiv" country="UA" region="Kyiv"/>
 ```
 
 ### Models
 
 ```xml
-<Models name='ai.models'/>
+<Models name="ai.models"/>
 ```
 
 ## License
