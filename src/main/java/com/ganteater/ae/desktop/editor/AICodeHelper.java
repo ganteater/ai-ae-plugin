@@ -26,6 +26,8 @@ import com.openai.client.okhttp.OpenAIOkHttpClient;
 
 public class AICodeHelper extends CodeHelper {
 
+	private static final String DEFAULT_MODEL = "gpt-5-mini";
+	
 	private String chatModel;
 	private boolean debug;
 
@@ -47,7 +49,7 @@ public class AICodeHelper extends CodeHelper {
 		Node editorNode = recipeEditor.getEditor().getEditorNode();
 
 		String model = taskProcessor.attr(editorNode, "model");
-		chatModel = StringUtils.defaultIfEmpty(model, "gpt-5-mini");
+		chatModel = StringUtils.defaultIfEmpty(model, DEFAULT_MODEL);
 		debug = Boolean.parseBoolean(taskProcessor.attr(editorNode, "debug", "false"));
 
 		new Thread(() -> {
@@ -57,9 +59,10 @@ public class AICodeHelper extends CodeHelper {
 				client = createClient(taskProcessor, editorNode);
 				AIHelperDialog aiHelperDialog = new AIHelperDialog(this, client);
 				super.setDefaultDialog(aiHelperDialog);
-				setProgress(false);
 			} catch (IOException e) {
 				getLog().error("Critical error: AI Helper could not be initialized.", e);
+			} finally {
+				setProgress(false);
 			}
 		}).start();
 	}
