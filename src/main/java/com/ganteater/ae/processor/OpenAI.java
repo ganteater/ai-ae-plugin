@@ -72,7 +72,8 @@ public class OpenAI extends BaseProcessor {
 
 	@CommandDescription("The 'name' attribute is used to define the property name where the response will be stored.")
 	@CommandExamples({ "<Prompt name='type:property'>...</Prompt>",
-			"<Prompt name='type:property'><message role='enum:user|system|developer'>...</message></Messages>" })
+			"<Prompt name='type:property' model='type:string'>...</Prompt>",
+			"<Prompt name='type:property' model='type:string'><message role='enum:user|system|developer'>...</message></Messages>" })
 	public void runCommandPrompt(Node action) throws CommandException {
 		String name = attr(action, "name");
 		String model = Optional.ofNullable(attr(action, "model")).orElse(chatModel);

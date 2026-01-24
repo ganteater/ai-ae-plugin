@@ -1,7 +1,0 @@
-<Recipe name="WebSearch Tool Test">
-	<Extern class="OpenAI" model="gpt-5-mini" apiKey="$var{OPENAI_API_KEY}">
-		<WebSearch /> 
-		<Prompt name="response">What is it ganteater.com site?</Prompt> 
-		<Out name="response" /> 
-	</Extern> 
-</Recipe> 
