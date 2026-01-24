@@ -3,8 +3,6 @@ package com.ganteater.ae.desktop.editor;
 import java.awt.BorderLayout;
 import java.awt.Component;
 import java.awt.Dimension;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
 import java.awt.event.KeyAdapter;
@@ -19,7 +17,6 @@ import java.util.Map.Entry;
 import java.util.Optional;
 
 import javax.swing.BorderFactory;
-import javax.swing.JButton;
 import javax.swing.JOptionPane;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
@@ -33,7 +30,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.ganteater.ae.AELogRecord;
-import com.ganteater.ae.ILogger;
 import com.ganteater.ae.desktop.ui.OptionPane;
 import com.ganteater.ae.desktop.view.View;
 import com.ganteater.ae.processor.Processor;
@@ -56,13 +52,10 @@ public class AIHelperDialog extends HelperDialog {
 
 	private static final long serialVersionUID = 1L;
 
-	private static final String REQUEST_BUTTON_TEXT = "Perform";
-
 	private static final String OUTPUT_FORMAT_RESOURCE_NAME = "/output-format.md";
 	private static Map<String, ResponseInputItem> contextMap = new LinkedHashMap<>();
 
 	private JTextArea editor = new JTextArea();
-	private JButton perform = new JButton(REQUEST_BUTTON_TEXT);
 
 	public AIHelperDialog(final AICodeHelper codeHelper, final OpenAIClient client) throws JsonProcessingException {
 		super(codeHelper);
@@ -103,14 +96,6 @@ public class AIHelperDialog extends HelperDialog {
 		}
 
 		getContentPane().add(comp, BorderLayout.CENTER);
-		getContentPane().add(perform, BorderLayout.SOUTH);
-
-		perform.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				perform(client);
-			}
-		});
 
 		editor.addKeyListener(new KeyAdapter() {
 			@Override
@@ -135,7 +120,7 @@ public class AIHelperDialog extends HelperDialog {
 			@Override
 			public void focusLost(FocusEvent e) {
 				Component cmp = e.getOppositeComponent();
-				if (cmp != AIHelperDialog.this && cmp != editor && cmp != perform) {
+				if (cmp != AIHelperDialog.this && cmp != editor) {
 					setVisible(false);
 				}
 			}
@@ -157,15 +142,11 @@ public class AIHelperDialog extends HelperDialog {
 		new Thread(() -> {
 			try {
 				getCodeHelper().setProgress(true);
-				perform.setEnabled(false);
 				setVisible(false);
-				perform.setText("Waiting for the response ...");
 				performRequest(client);
 
 			} finally {
 				getCodeHelper().setProgress(false);
-				perform.setText(REQUEST_BUTTON_TEXT);
-				perform.setEnabled(true);
 			}
 		}).start();
 	}
@@ -302,8 +283,9 @@ public class AIHelperDialog extends HelperDialog {
 			long outputTokens = optional.get().outputTokens();
 			long reasoningTokens = optional.get().outputTokensDetails().reasoningTokens();
 
-			getCodeHelper().getLog().debug(String.format("Input: %1$d, cached: %2$d, output: %3$d, reasoning: %4$d tokens.", inputTokens,
-					inputCachedTokens, outputTokens, reasoningTokens));
+			getCodeHelper().getLog()
+					.debug(String.format("Input: %1$d, cached: %2$d, output: %3$d, reasoning: %4$d tokens.",
+							inputTokens, inputCachedTokens, outputTokens, reasoningTokens));
 		}
 	}
 
