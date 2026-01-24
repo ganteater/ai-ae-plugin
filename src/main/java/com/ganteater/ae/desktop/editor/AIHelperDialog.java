@@ -150,19 +150,21 @@ public class AIHelperDialog extends HelperDialog {
 			String generalInfo = IOUtils.toString(systemResource, "UTF8");
 			addContextInput(name, generalInfo);
 		} catch (Exception e) {
-			getLog().error("Resource: " + name + " not found.", e);
+			getCodeHelper().getLog().error("Resource: " + name + " not found.", e);
 		}
 	}
 
 	private void perform(final OpenAIClient client) {
 		new Thread(() -> {
 			try {
+				getCodeHelper().setProgress(true);
 				perform.setEnabled(false);
+				setVisible(false);
 				perform.setText("Waiting for the response ...");
 				performRequest(client);
-				setVisible(false);
 
 			} finally {
+				getCodeHelper().setProgress(false);
 				perform.setText(REQUEST_BUTTON_TEXT);
 				perform.setEnabled(true);
 			}
@@ -188,7 +190,7 @@ public class AIHelperDialog extends HelperDialog {
 				ResponseInputItem value = contextEntry.getValue();
 				String text = value.message().get().content().get(0).inputText().get().text();
 				if (!StringUtils.contains(contextEntry.getKey(), OUTPUT_FORMAT_RESOURCE_NAME)) {
-					getLog().debug(new AELogRecord(text, "txt", null));
+					getCodeHelper().getLog().debug(new AELogRecord(text, "txt", null));
 				}
 				inputs.add(value);
 			}
@@ -209,7 +211,7 @@ public class AIHelperDialog extends HelperDialog {
 			editorInfo.setSelection(selection);
 			try {
 				String source = mapper.writeValueAsString(editorInfo);
-				getLog().debug(new AELogRecord(source, "json", null));
+				getCodeHelper().getLog().debug(new AELogRecord(source, "json", null));
 
 				Message message = com.openai.models.responses.ResponseInputItem.Message.builder()
 						.role(com.openai.models.responses.ResponseInputItem.Message.Role.USER)
@@ -223,7 +225,7 @@ public class AIHelperDialog extends HelperDialog {
 						.addInputTextContent(prompt).build();
 
 				inputs.add(ResponseInputItem.ofMessage(input));
-				getLog().info(new AELogRecord(prompt, "txt", null));
+				getCodeHelper().getLog().info(new AELogRecord(prompt, "txt", null));
 
 				Builder builder = ResponseCreateParams.builder().model(getCodeHelper().getChatModel())
 						.input(Input.ofResponse(inputs));
@@ -308,7 +310,7 @@ public class AIHelperDialog extends HelperDialog {
 
 	private void debug(Object message) {
 		if (getCodeHelper().isDebug()) {
-			getLog().debug(message);
+			getCodeHelper().getLog().debug(message);
 		}
 	}
 
@@ -325,14 +327,6 @@ public class AIHelperDialog extends HelperDialog {
 
 	public Object getProcessorDescription(Object processorName) {
 		return null;
-	}
-
-	private ILogger getLog() {
-		log = getCodeHelper().getEditor().getRecipePanel().getLogger();
-		if (log == null) {
-			log = getCodeHelper().getRecipePanel().createLog("Helper", true);
-		}
-		return log;
 	}
 
 	@Override

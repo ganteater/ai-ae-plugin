@@ -7,8 +7,14 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import javax.swing.BorderFactory;
+import javax.swing.JLabel;
+
 import org.apache.commons.lang.StringUtils;
 
+import com.ganteater.ae.ILogger;
+import com.ganteater.ae.desktop.ui.AEFrame;
+import com.ganteater.ae.desktop.ui.TaskPanel;
 import com.ganteater.ae.processor.CommandInfo;
 import com.ganteater.ae.processor.Processor;
 import com.ganteater.ae.processor.annotation.CommandDescription;
@@ -23,8 +29,17 @@ public class AICodeHelper extends CodeHelper {
 	private String chatModel;
 	private boolean debug;
 
+	private JLabel aiProgress = new JLabel(AEFrame.getIcon("spinner.gif"));
+
 	public AICodeHelper(TextEditor textEditor) throws IOException, IllegalAccessException {
 		super(textEditor);
+
+		TaskEditor recipePanel = textEditor.getRecipePanel();
+		TaskPanel taskPanel = recipePanel.getMainPanel();
+
+		aiProgress.setBorder(BorderFactory.createEmptyBorder());
+		aiProgress.setOpaque(false);
+		taskPanel.addButton(aiProgress);
 
 		TaskEditor recipeEditor = getRecipePanel();
 		Processor taskProcessor = recipeEditor.getProcessor();
@@ -35,10 +50,18 @@ public class AICodeHelper extends CodeHelper {
 		chatModel = StringUtils.defaultIfEmpty(model, "gpt-5-mini");
 		debug = Boolean.parseBoolean(taskProcessor.attr(editorNode, "debug", "false"));
 
-		OpenAIClient client = createClient(taskProcessor, editorNode);
-
-		AIHelperDialog aiHelperDialog = new AIHelperDialog(this, client);
-		super.setDefaultDialog(aiHelperDialog);
+		new Thread(() -> {
+			OpenAIClient client;
+			try {
+				setProgress(true);
+				client = createClient(taskProcessor, editorNode);
+				AIHelperDialog aiHelperDialog = new AIHelperDialog(this, client);
+				super.setDefaultDialog(aiHelperDialog);
+				setProgress(false);
+			} catch (IOException e) {
+				getLog().error("Critical error: AI Helper could not be initialized.", e);
+			}
+		}).start();
 	}
 
 	protected OpenAIClient createClient(Processor taskProcessor, Node editorNode) throws IOException {
@@ -108,6 +131,18 @@ public class AICodeHelper extends CodeHelper {
 		result.setCommands(arrayList);
 
 		return result;
+	}
+
+	public void setProgress(boolean process) {
+		aiProgress.setVisible(process);
+	}
+
+	public ILogger getLog() {
+		ILogger log = getEditor().getRecipePanel().getLogger();
+		if (log == null) {
+			log = getRecipePanel().createLog("Helper", true);
+		}
+		return log;
 	}
 
 }
