@@ -61,7 +61,6 @@ public class AIHelperDialog extends HelperDialog {
 	private static final String OUTPUT_FORMAT_RESOURCE_NAME = "/output-format.md";
 	private static Map<String, ResponseInputItem> contextMap = new LinkedHashMap<>();
 
-	private ILogger log;
 	private JTextArea editor = new JTextArea();
 	private JButton perform = new JButton(REQUEST_BUTTON_TEXT);
 
@@ -190,7 +189,7 @@ public class AIHelperDialog extends HelperDialog {
 				ResponseInputItem value = contextEntry.getValue();
 				String text = value.message().get().content().get(0).inputText().get().text();
 				if (!StringUtils.contains(contextEntry.getKey(), OUTPUT_FORMAT_RESOURCE_NAME)) {
-					getCodeHelper().getLog().debug(new AELogRecord(text, "txt", null));
+					debug(new AELogRecord(text, "txt", null));
 				}
 				inputs.add(value);
 			}
@@ -211,7 +210,7 @@ public class AIHelperDialog extends HelperDialog {
 			editorInfo.setSelection(selection);
 			try {
 				String source = mapper.writeValueAsString(editorInfo);
-				getCodeHelper().getLog().debug(new AELogRecord(source, "json", null));
+				debug(new AELogRecord(source, "json", null));
 
 				Message message = com.openai.models.responses.ResponseInputItem.Message.builder()
 						.role(com.openai.models.responses.ResponseInputItem.Message.Role.USER)
@@ -303,7 +302,7 @@ public class AIHelperDialog extends HelperDialog {
 			long outputTokens = optional.get().outputTokens();
 			long reasoningTokens = optional.get().outputTokensDetails().reasoningTokens();
 
-			debug(String.format("Input: %1$d, cached: %2$d, output: %3$d, reasoning: %4$d tokens.", inputTokens,
+			getCodeHelper().getLog().debug(String.format("Input: %1$d, cached: %2$d, output: %3$d, reasoning: %4$d tokens.", inputTokens,
 					inputCachedTokens, outputTokens, reasoningTokens));
 		}
 	}

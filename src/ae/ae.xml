@@ -5,7 +5,7 @@
  	<Configuration name="OpenAI Demo">
  		<Recipes path="recipes/openai"/>
  		<Var name="OPENAI_API_KEY" init="console" type="password" />
-		<Editor helper="AICodeHelper" apiKey="$var{OPENAI_API_KEY}" debug="true" />
+		<Editor helper="AICodeHelper" apiKey="$var{OPENAI_API_KEY}" />
  	</Configuration>
 
 	<Configuration name="CodeMie Demo">
@@ -18,7 +18,7 @@
 
 		<Editor helper="CodeMieHelper"
 			username="$var{CodeMie Username}" password="$var{CodeMie Password}"
-			model="gpt-5-2-2025-12-11" debug="true" />
+			model="gpt-5-2-2025-12-11" />
 	</Configuration>
 
 </Environment>

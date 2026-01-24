@@ -70,7 +70,8 @@ public class OpenAI extends BaseProcessor {
 		client = OpenAIOkHttpClient.builder().apiKey(apiKey).baseUrl(baseUrl).build();
 	}
 
-	@CommandDescription("The 'name' attribute is used to define the property name where the response will be stored.")
+	@CommandDescription("The 'name' attribute is used to define the property name where the response will be stored.\r\n"
+			+ "`model` attribut should be defined in this command or Extern as a default model.\r\n")
 	@CommandExamples({ "<Prompt name='type:property'>...</Prompt>",
 			"<Prompt name='type:property' model='type:string'>...</Prompt>",
 			"<Prompt name='type:property' model='type:string'><message role='enum:user|system|developer'>...</message></Messages>" })

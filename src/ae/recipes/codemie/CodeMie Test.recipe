@@ -1,0 +1,32 @@
+<Recipe name="CodeMie Test">
+	<About>
+		<description>CodeMie prompt processing with optional web page review (fetches a URL, optionally shows HTML, then sends prompt to CodeMie).</description> 
+	</About> 
+	<!-- Example: CodeMie prompt processing with optional web page review --> 
+	<Var name="CodeMie Username" init="mandatory" /> 
+	<Var name="CodeMie Password" init="mandatory" type="password" /> 
+	<Var name="User Prompt" init="mandatory" type="text" /> 
+	<Var name="Need Web Review? (true/false)" init="default" value="true" /> 
+	<Var name="Review URL" init="default" value="https://example.com" /> 
+	<Var name="Review Page HTML" init="default" value="" /> 
+	<If name="Need Web Review? (true/false)" equals="true">
+		<!-- Get web page HTML for review --> 
+		<Get name="Review Page HTML" url="$var{Review URL}" timeout="30s" /> 
+		<!-- Optional: show the fetched page in a view --> 
+		<View name="reviewPageView" reuse="false" type="Markdown" /> 
+		<Out view="reviewPageView">$var{Review Page HTML}</Out> 
+	</If> 
+	<!-- Call CodeMie to process prompt, optionally using fetched web page content --> 
+	<Extern class="CodeMie" username="$var{CodeMie Username}" password="$var{CodeMie Password}" model="gpt-4o-2024-11-20">
+		<Prompt name="CodeMie Response">
+			<message role="system">You are an assistant. If web page content is provided, review it and answer accordingly.</message> 
+			<message role="user">User request: $var{User Prompt}</message> 
+			<message role="user">Web review enabled: $var{Need Web Review? (true/false)}</message> 
+			<message role="user">Review URL: $var{Review URL}</message> 
+			<message role="user">Web page content (may be empty): $var{Review Page HTML}</message> 
+		</Prompt> 
+	</Extern> 
+	<!-- Output the response in Markdown view --> 
+	<View name="codeMieResponseView" reuse="false" type="Markdown" /> 
+	<Out view="codeMieResponseView">$var{CodeMie Response}</Out> 
+</Recipe> 
