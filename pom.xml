@@ -91,7 +91,7 @@
 					<genai>CodeMie:gpt-5-2-2025-12-11</genai>
 					<serverId>CodeMie</serverId>
 					<instructions>
-						<instruction>C:\projects\ganteater\code\trunk\src\site\resources\instructions\ae-base-instruction.txt</instruction>
+						<instruction>https://ganteater.com/instructions/ae-base-instruction.txt</instruction>
 					</instructions>
 				</configuration>
 			</plugin>
