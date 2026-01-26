@@ -3,36 +3,39 @@
 Content Structure:
 # Project Title
 - Extract the project title from pom.xml and display it as the main heading.
-- Add `![](src/site/resources/images/ai-ae-plugin.png)` before the title.
-- Immediately after the title, add a Maven Central badge as a new paragraph:  
+- Insert `![](src/site/resources/images/ai-ae-plugin.png)` above the title.
+- Directly below the title, add a Maven Central badge as a new paragraph:  
   `[![Maven Central](https://img.shields.io/maven-central/v/[groupId]/[artifactId].svg)](https://central.sonatype.com/artifact/[groupId]/[artifactId])`  
   Replace `[groupId]` and `[artifactId]` with values from pom.xml.
 # Overview
-- Summarize the content of all `package-info.java` files found in the source folders.
+- Summarize the content of all `package-info.java` files in the source folders.
 - Describe the application's core functionality in a professional, non-technical style. Do not mention package names.
-- Provide a concise summary outlining the project's purpose and main features.
+- Provide a concise summary of the project's purpose and main features.
 # Installation Instructions
 - List all prerequisites, including the required Java version and build tools.
-- Describe multiple ways to use this plugin:
-  - **Clone and Build the Project:**  
-    - Provide clear, step-by-step instructions for checking out the repository and building the project with Maven.
-  - **Download Assembled Jar File:**  
+- Describe multiple installation and usage options:
+  - **Clone and Build:**  
+    - Provide step-by-step instructions for checking out the repository and building the project with Maven.
+  - **Download Assembled Jar:**  
     - Include a direct download link for the application jar:  
       `[![Download Jar](https://custom-icon-badges.demolab.com/badge/-Download-blue?style=for-the-badge&logo=download&logoColor=white "Download jar")](https://sourceforge.net/projects/anteater/files/plugins/ai-ae-plugin.jar/download)`
-    - Instruct the user to open the folder where Anteater is installed, locate the `plugins` folder, and move or copy the downloaded `.jar` file into it.
+    - Instruct users to place the downloaded `.jar` file into the `plugins` folder of their Anteater installation.
   - **Launch Anteater Desktop or CLI:**  
-    - Explain that the application will automatically detect and load the plugin, making its features available.
-  - **Use Maven to Manage Your Project:**  
-    - Show how to add the plugin as a dependency in the project’s `pom.xml` file.
-    - Explain that Maven will download and include the plugin automatically during the build process.
+    - Explain that the application will automatically detect and load the plugin.
+  - **Maven Integration:**  
+    - Show how to add the plugin as a dependency in the project’s `pom.xml`.
+    - Explain that Maven will handle downloading and including the plugin during the build.
 # Usage
-- Provide usage instructions for:
+- Provide instructions for:
   - **Code Helpers:**  
-    - Describe how to use code helpers defined in `/src/main/java/com/ganteater/ae/desktop/editor`.
+    - Analyze classes in `/src/main/java/com/ganteater/ae/desktop/editor`.
+    - Describe their functionality.
+    - Reference `src/ae/ae.xml` as a usage example.
   - **Processors:**  
-    - Describe how to use processors in `/src/main/java/com/ganteater/ae/processor`.
-    - Outline a typical workflow for using the project artifacts.
-    - Reference example recipes found in `src/ae/recipes`.
+    - Analyze classes in `/src/main/java/com/ganteater/ae/processor`.
+    - Describe their functionality.
+    - Outline a typical workflow for using these components.
+    - Reference example recipes in `src/ae/recipes`.
 **Formatting Requirements:**
 - Use Markdown syntax for all headings, lists, code blocks, and links.
 - Ensure each section is clear, concise, and logically organized.
@@ -45,58 +48,42 @@ Content Structure:
 [![Maven Central](https://img.shields.io/maven-central/v/com.ganteater.plugins/ai-ae-plugin.svg)](https://central.sonatype.com/artifact/com.ganteater.plugins/ai-ae-plugin)
 
 ## Overview
+This plugin adds AI-assisted capabilities to Anteater, enabling automated workflows and interactive assistance powered by OpenAI-compatible language models.
 
-AI Anteater Plugin extends Anteater with AI-assisted editing and AI-powered automation steps for recipes.
-
-- **Editor assistance**: Adds an interactive helper in the Anteater Desktop editor that gathers the current recipe text, caret/selection, and relevant runtime context, then applies AI-generated recipe updates back into the editor.
-- **Recipe processors**: Adds processors that connect to OpenAI-compatible providers, enabling recipes to send prompts, expose recipe tasks as callable tools/functions, list available models, and optionally use provider capabilities such as web search.
+It provides:
+- A desktop-editor helper that can send the current recipe text (including caret/selection) plus runtime context to an AI backend and apply the returned updates back into the editor.
+- Recipe processors that expose commands for prompting, defining callable tools/functions, listing models, and enabling optional provider features like web search.
 
 ## Installation Instructions
-
 ### Prerequisites
+- Java 9 (as configured by the project)
+- Maven (to build or consume the artifact)
+- An Anteater installation (Desktop or CLI) to load the plugin
+- An API key (or provider credentials) for an OpenAI-compatible service
 
-- **Java**: 9 (or compatible toolchain configured for Java 9)
-- **Build tool**: Maven
-- **Anteater**: Anteater Desktop and/or CLI installed (to load and run plugins)
-
-### Clone and build the project
-
+### Clone and Build
 1. Clone the repository:
-
    ```bash
    git clone https://github.com/ganteater/ai-ae-plugin.git
    cd ai-ae-plugin
    ```
-
 2. Build with Maven:
-
    ```bash
    mvn -DskipTests package
    ```
+3. Copy the produced jar into your Anteater `plugins` folder.
 
-3. (Optional) Build the assembled plugin jar (profile `pack`):
-
-   ```bash
-   mvn -DskipTests package -Ppack
-   ```
-
-### Download assembled jar file
-
+### Download Assembled Jar
 [![Download Jar](https://custom-icon-badges.demolab.com/badge/-Download-blue?style=for-the-badge&logo=download&logoColor=white "Download jar")](https://sourceforge.net/projects/anteater/files/plugins/ai-ae-plugin.jar/download)
 
 1. Download the jar using the link above.
-2. Open the folder where Anteater is installed.
-3. Locate the `plugins` folder.
-4. Move or copy the downloaded `ai-ae-plugin.jar` into the `plugins` folder.
+2. Place the downloaded `.jar` file into the `plugins` folder of your Anteater installation.
 
 ### Launch Anteater Desktop or CLI
+Start Anteater as usual. It will automatically detect and load the plugin from the `plugins` folder.
 
-Start Anteater Desktop or the Anteater CLI. Anteater will automatically detect and load the plugin from the `plugins` folder, making the AI features available.
-
-### Use Maven to manage your project
-
-Add the plugin as a dependency in your project’s `pom.xml`:
-
+### Maven Integration
+Add the dependency to your project’s `pom.xml`:
 ```xml
 <dependency>
   <groupId>com.ganteater.plugins</groupId>
@@ -104,50 +91,45 @@ Add the plugin as a dependency in your project’s `pom.xml`:
   <version><!-- use the latest version from Maven Central --></version>
 </dependency>
 ```
-
-Maven will download and include the dependency automatically during your build.
+Maven will download the plugin and include it on the classpath during your build.
 
 ## Usage
+### Code Helpers
+The desktop editor integration provides a lightweight UI for AI-assisted recipe editing:
+- **AICodeHelper** initializes an OpenAI-compatible client from editor configuration, collects runtime context, and shows a helper dialog while reporting progress.
+- **AIHelperDialog** builds a request that includes system variables, available processors/commands, view information, and the editor’s current content/caret/selection; it sends the request and applies the returned recipe/caret/selection updates back into the editor.
+- **CodeMieHelper** is a variant that obtains an access token using CodeMie credentials and then creates the OpenAI-compatible client.
 
-### Code helpers
+Configuration example (see `src/ae/ae.xml`):
+```xml
+<Editor helper="AICodeHelper" apiKey="$var{OPENAI_API_KEY}" />
 
-Use the AI helper inside Anteater Desktop while editing a recipe:
-
-1. Open a recipe in Anteater Desktop.
-2. Invoke the AI code helper from the editor UI.
-3. Provide or confirm provider settings (model, API key and/or base URL, debug options).
-4. Review and apply the generated recipe updates that are written back into the editor.
+<Editor helper="CodeMieHelper"
+  username="$var{CodeMie Username}" password="$var{CodeMie Password}"
+  model="gpt-5-2-2025-12-11" />
+```
 
 ### Processors
+The processors are designed to be used from recipes (typically via `Extern`) and provide commands for calling OpenAI-compatible services.
 
-Use the processors from Anteater recipes (XML) to interact with OpenAI-compatible backends.
+Included components:
+- **OpenAI**: connects to the OpenAI Responses API (or compatible services) and provides commands such as `Prompt`, `Function`, `Models`, and `WebSearch`.
+- **CodeMie**: obtains an access token using `username`/`password`, configures the underlying OpenAI-compatible client, then reuses the OpenAI processor behavior.
+- **AbstractAIProcessor**: a legacy/alternative base that defines prompting and tool registration in a provider-agnostic manner.
 
 Typical workflow:
+1. Configure a provider via `Extern` (API key, optional base URL, default model).
+2. Optionally register callable tools via `Function` (nested `property` and `Task`).
+3. Send prompts via `Prompt` and store the model output in a recipe variable.
+4. Optionally list models via `Models` or enable `WebSearch`.
 
-1. Configure a provider in a recipe using an `Extern` element.
-2. Send prompts/messages and store the output to a variable.
-3. Optionally register recipe `Task` blocks as callable tools (functions).
-4. Use the returned variable values in subsequent recipe steps.
-
-Example snippets (see also `src/ae/recipes`):
-
-Configure a provider:
-
+Example recipe usage (see examples under `src/ae/recipes`):
 ```xml
-<Extern class="OpenAI" model="gpt-5-mini" apiKey="$var{OPENAI_API_KEY}" />
-```
+<Extern class="OpenAI" model="gpt-5-mini" apiKey="$var{OPENAI_API_KEY}" baseUrl="https://example.com/openai">
+  <Prompt name="responseText">Write a short poem about the beauty of nature.</Prompt>
+  <Out name="responseText" level="info" />
+</Extern>
 
-Prompting:
-
-```xml
-<Prompt name="answer">
-  <message role="user">Summarize the release notes.</message>
-</Prompt>
-```
-
-Define a callable function tool:
-
-```xml
 <Function name="getTicket" description="Fetch a ticket by id" type="object" return="ticket">
   <property name="id" type="string" required="true" />
   <Task>

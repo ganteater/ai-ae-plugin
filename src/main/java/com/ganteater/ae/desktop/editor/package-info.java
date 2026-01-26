@@ -22,37 +22,29 @@
  */
 
 /**
- * Desktop editor integration that connects Anteater's recipe editor to an OpenAI-compatible backend.
+ * Desktop editor integration for AI-assisted Anteater recipe editing.
  *
  * <p>
- * The classes in this package provide an AI helper UI for {@code TextEditor} instances. They collect the current
- * editor state (full recipe text, caret position, and selection range) and assemble additional runtime context,
- * including system variable names, available processors and their command metadata, and view descriptions.
- * The resulting context is sent as a chat-style request using the OpenAI Java client; the model response is
- * expected to be structured text that contains a generated recipe body plus optional caret/selection updates.
- * The generated recipe text is applied back into the editor and the recipe is recompiled/refreshed.
+ * This package provides a small UI workflow that lets a {@code TextEditor} send the current editor state
+ * (recipe text, caret position, and selection) together with runtime metadata (system variables, available
+ * processors/commands, and view descriptions) to an OpenAI-compatible backend. The backend response is expected
+ * to be structured text containing the updated recipe plus optional caret/selection adjustments, which are then
+ * applied back into the editor and followed by a recompile/refresh.
  * </p>
- *
- * <h2>Main responsibilities</h2>
- * <ul>
- *   <li>Initialize an {@code OpenAIClient} using editor configuration (model, API key/base URL, debug).</li>
- *   <li>Gather request context from system variables, processor command metadata, and view descriptions.</li>
- *   <li>Send the request and apply the returned generated recipe code, followed by compile and UI refresh.</li>
- * </ul>
  *
  * <h2>Key types</h2>
  * <ul>
- *   <li>{@link com.ganteater.ae.desktop.editor.AICodeHelper} attaches the helper to the editor UI and creates the
- *       OpenAI client and dialog in a background thread.</li>
- *   <li>{@link com.ganteater.ae.desktop.editor.AIHelperDialog} builds the request, invokes the model, parses the
- *       response, and updates the editor contents and caret/selection.</li>
- *   <li>{@link com.ganteater.ae.desktop.editor.CodeMieHelper} obtains an API token via {@code CodeMie} and then
- *       creates the OpenAI client using that token.</li>
+ *   <li>{@link com.ganteater.ae.desktop.editor.AICodeHelper} initializes an {@code OpenAIClient}, gathers context,
+ *       and manages showing the helper UI while reporting progress.</li>
+ *   <li>{@link com.ganteater.ae.desktop.editor.AIHelperDialog} collects context and editor state, issues the
+ *       request, and applies the generated recipe and caret/selection updates.</li>
+ *   <li>{@link com.ganteater.ae.desktop.editor.CodeMieHelper} variant that obtains an API token via
+ *       {@code CodeMie} and uses it to create the OpenAI client.</li>
  * </ul>
  *
  * <h2>Typical usage</h2>
  * <pre>{@code
- * // Constructed and managed by the desktop editor.
+ * // Typically created by the desktop editor for a specific TextEditor instance.
  * AICodeHelper helper = new AICodeHelper(textEditor);
  * helper.showDialog();
  * }
