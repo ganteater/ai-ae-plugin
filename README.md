@@ -2,11 +2,11 @@
 @guidance:
 Content Structure:
 # Project Title
-- Extract the project title from pom.xml and display it as the main heading.
-- Insert `![](src/site/resources/images/ai-ae-plugin.png)` above the title.
+- Extract the project title from `pom.xml` and display it as the main heading.
+- Place `![](src/site/resources/images/ai-ae-plugin.png)` above the title.
 - Directly below the title, add a Maven Central badge as a new paragraph:  
   `[![Maven Central](https://img.shields.io/maven-central/v/[groupId]/[artifactId].svg)](https://central.sonatype.com/artifact/[groupId]/[artifactId])`  
-  Replace `[groupId]` and `[artifactId]` with values from pom.xml.
+  Replace `[groupId]` and `[artifactId]` with values from `pom.xml`.
 # Overview
 - Summarize the content of all `package-info.java` files in the source folders.
 - Describe the application's core functionality in a professional, non-technical style. Do not mention package names.
@@ -24,18 +24,18 @@ Content Structure:
     - Explain that the application will automatically detect and load the plugin.
   - **Maven Integration:**  
     - Show how to add the plugin as a dependency in the project’s `pom.xml`.
-    - Explain that Maven will handle downloading and including the plugin during the build.
+    - Explain that Maven will handle downloading and including the plugin during the build process.
 # Usage
 - Provide instructions for:
   - **Code Helpers:**  
-    - Analyze class foles in `/src/main/java/com/ganteater/ae/desktop/editor` folder.
+    - Analyze class files in the `/src/main/java/com/ganteater/ae/desktop/editor` folder.
     - Describe their functionality.
-    - Reference `src/ae/ae.xml` as a usage example.
+    - Use `src/ae/ae.xml` to create usage examples.
   - **Processors:**  
-    - Analyze class files in `/src/main/java/com/ganteater/ae/processor` folder.
+    - Analyze class files in the `/src/main/java/com/ganteater/ae/processor` folder.
     - Describe their functionality.
     - Outline a typical workflow for using these components.
-    - Reference example recipes in `src/ae/recipes`.
+    - Use `src/ae/recipes` to create usage examples.
 **Formatting Requirements:**
 - Use Markdown syntax for all headings, lists, code blocks, and links.
 - Ensure each section is clear, concise, and logically organized.
@@ -48,105 +48,131 @@ Content Structure:
 [![Maven Central](https://img.shields.io/maven-central/v/com.ganteater.plugins/ai-ae-plugin.svg)](https://central.sonatype.com/artifact/com.ganteater.plugins/ai-ae-plugin)
 
 ## Overview
-This project adds AI assistance to Anteater in two ways:
+This project provides an AI plugin for Anteater that adds:
+- Desktop editor assistance for generating and refining Anteater recipes.
+- Recipe processors that connect to OpenAI-compatible providers to run prompts, expose recipe tasks as callable tools, list models, and optionally enable web search.
 
-- **Desktop editor helper:** A lightweight, always-available dialog inside the desktop editor that captures your current recipe content (including caret/selection), enriches it with runtime context (available commands, variables, and UI/view descriptions), sends it to an OpenAI-compatible service, and applies the returned update back into the editor.
-- **AI-enabled processors for recipes:** Recipe components that let you prompt a model, register tasks as callable tools (functions), list available models, and optionally enable provider features such as web search.
+In the desktop editor, the helper gathers the current recipe text, caret/selection, and relevant runtime context, sends it to a chat model, and applies the updated recipe back into the editor.
 
 ## Installation Instructions
 ### Prerequisites
-- **Java:** 9 (or later)
-- **Build tool:** Maven
-- **Anteater:** Desktop or CLI installation (for running the plugin)
+- Java 9 (as configured by the project)
+- Apache Maven
+- An Anteater installation (Desktop or CLI) for running the plugin
+- Provider credentials (for example, an OpenAI API key or CodeMie username/password), depending on what you use
 
-### Option 1: Clone and Build
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/ganteater/ai-ae-plugin.git
-   cd ai-ae-plugin
-   ```
+### Clone and Build
+1. Clone the repository.
 2. Build with Maven:
-   ```bash
-   mvn -DskipTests package
-   ```
-3. Copy the produced JAR into your Anteater `plugins` folder.
 
-### Option 2: Download Assembled Jar
+```bash
+mvn -U clean package
+```
+
+3. (Optional) If the project is configured to assemble a single distributable jar via the `pack` profile:
+
+```bash
+mvn -U clean package -Ppack
+```
+
+### Download Assembled Jar
 [![Download Jar](https://custom-icon-badges.demolab.com/badge/-Download-blue?style=for-the-badge&logo=download&logoColor=white "Download jar")](https://sourceforge.net/projects/anteater/files/plugins/ai-ae-plugin.jar/download)
 
-1. Download the JAR using the button above.
-2. Place the downloaded `.jar` file into the `plugins` folder of your Anteater installation.
+1. Download the jar.
+2. Copy it into the `plugins` folder of your Anteater installation.
 
-### Option 3: Launch Anteater Desktop or CLI
-When Anteater starts, it automatically detects plugins from the `plugins` folder and loads them at startup.
+### Launch Anteater Desktop or CLI
+Start Anteater normally. It will automatically detect and load the plugin from the `plugins` directory.
 
-### Option 4: Maven Integration
-Add the plugin as a dependency in your project’s `pom.xml`:
+### Maven Integration
+Add the dependency to your project’s `pom.xml`:
 
 ```xml
 <dependency>
   <groupId>com.ganteater.plugins</groupId>
   <artifactId>ai-ae-plugin</artifactId>
-  <version>1.2.10</version>
+  <version><!-- set the desired version --></version>
 </dependency>
 ```
 
-Maven will download the artifact and include it on the classpath during the build.
+Maven will download the artifact and include it in your build.
 
 ## Usage
 ### Code Helpers
-The desktop helper provides an in-editor AI dialog that can propose or apply recipe updates.
+The plugin includes desktop editor helpers that initialize an OpenAI-compatible client, collect editor/runtime context, and update the recipe text based on the model’s response.
 
-Key components:
-- **AICodeHelper**: Attaches to a text editor instance, reads configuration (model, apiKey, optional baseUrl), creates an OpenAI client, and manages a progress indicator.
-- **AIHelperDialog**: Builds the request context (general instructions, output format, system variables, available processors/commands, and view descriptions), sends the request to the model, and applies the returned recipe text plus optional caret/selection updates.
-- **CodeMieHelper**: Alternate helper that authenticates via username/password to obtain an access token, then uses the same OpenAI-compatible flow.
+- **AICodeHelper**: Main helper that reads editor configuration (model, debug, apiKey/baseUrl), creates the client, and opens the assistant dialog.
+- **AIHelperDialog**: Collects context (system variables, known processors and views, current editor content), sends a request to the model, and applies the returned recipe text plus optional caret/selection updates.
+- **CodeMieHelper**: Variant that obtains a CodeMie access token from username/password, then creates the OpenAI-compatible client.
 
-Configuration example (helper wiring and credentials) from `src/ae/ae.xml`:
+Example configuration (from `src/ae/ae.xml`):
 
 ```xml
-<Environment xmlns="http://ganteater.com/xml/configuration"
-  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://ganteater.com/xml/configuration https://ganteater.com/xml/configuration/anteater-1.2.4.2.xsd">
+<Configuration name="OpenAI Demo">
+  <Recipes path="recipes/openai"/>
+  <Var name="OPENAI_API_KEY" init="console" type="password" />
+  <Editor helper="AICodeHelper" apiKey="$var{OPENAI_API_KEY}" />
+</Configuration>
 
-  <Configuration name="OpenAI Demo">
-    <Recipes path="recipes/openai"/>
-    <Var name="OPENAI_API_KEY" init="console" type="password" />
-    <Editor helper="AICodeHelper" apiKey="$var{OPENAI_API_KEY}" />
-  </Configuration>
+<Configuration name="CodeMie Demo">
+  <Recipes path="recipes/codemie"/>
 
-  <Configuration name="CodeMie Demo">
-    <Recipes path="recipes/codemie"/>
+  <Table name="CodeMie Credentials">
+    <var name="CodeMie Username" />
+    <var name="CodeMie Password" type="password" />
+  </Table>
 
-    <Table name="CodeMie Credentials">
-      <var name="CodeMie Username" />
-      <var name="CodeMie Password" type="password" />
-    </Table>
-
-    <Editor helper="CodeMieHelper"
-      username="$var{CodeMie Username}" password="$var{CodeMie Password}"
-      model="gpt-5-2-2025-12-11" />
-  </Configuration>
-
-</Environment>
+  <Editor helper="CodeMieHelper"
+    username="$var{CodeMie Username}" password="$var{CodeMie Password}"
+    model="gpt-5-2-2025-12-11" />
+</Configuration>
 ```
 
 ### Processors
-These processors are used from Anteater recipes (typically via `<Extern>`) to interact with OpenAI-compatible providers.
+The processors are designed to be used from Anteater recipes via `<Extern>` and then invoked using nested commands.
 
-Included processors:
-- **OpenAI**: Initializes an OpenAI client, sends prompts/messages, registers function tools backed by nested tasks, lists models, and can enable web search.
-- **CodeMie**: Obtains an access token using username/password, sets provider base URL, and then delegates to the OpenAI-compatible implementation.
-- **AbstractAIProcessor**: A legacy/alternative base abstraction for prompting and tool registration.
+Provided capabilities include:
+- Prompting a model and storing the assistant output into a recipe variable.
+- Registering recipe tasks as callable tools/functions.
+- Listing available models.
+- Enabling optional web search (provider-dependent).
 
 Typical workflow:
-1. Configure a provider using `<Extern>`.
-2. Optionally declare reusable tools with `<Function>` blocks.
-3. Call `<Prompt>` to send one or more messages.
-4. Store the assistant output in a recipe variable and use it in subsequent steps.
+1. Configure a provider in `<Extern>` (credentials, model, optional base URL).
+2. (Optional) Register tools/functions for the model.
+3. Call `<Prompt>` with a simple text body or a sequence of `<message>` items.
+4. Use `<Out>` / `<Var>` / other recipe commands to consume the response.
 
-See example recipes under `src/ae/recipes`, including:
-- `src/ae/recipes/openai/OpenAI.recipe`
-- `src/ae/recipes/openai/Function Tool Test.recipe`
-- `src/ae/recipes/openai/WebSearch Tool Test.recipe`
-- `src/ae/recipes/codemie/CodeMie Test.recipe`
+#### OpenAI processor example
+Based on `src/ae/recipes/openai/OpenAI.recipe`:
+
+```xml
+<Extern class="OpenAI" apiKey="$var{OPENAI_API_KEY}" baseUrl="https://codemie.lab.epam.com/code-assistant-api/v1">
+  <Models name="models" />
+  <Var name="model" source="models" init="console" />
+</Extern>
+
+<Extern class="OpenAI" model="gpt-5-2-2025-12-11" apiKey="$var{OPENAI_API_KEY}" baseUrl="https://codemie.lab.epam.com/code-assistant-api/v1">
+  <Prompt name="responseText">Write a short poem about the beauty of nature.</Prompt>
+  <Out name="responseText" level="info" />
+</Extern>
+```
+
+#### CodeMie processor example
+Based on `src/ae/recipes/codemie/CodeMie Test.recipe`:
+
+```xml
+<Var name="CodeMie Username" init="mandatory" />
+<Var name="CodeMie Password" init="mandatory" type="password" />
+<Var name="User Prompt" init="mandatory" type="text" />
+
+<Extern class="CodeMie" username="$var{CodeMie Username}" password="$var{CodeMie Password}" model="gpt-4o-2024-11-20">
+  <Prompt name="CodeMie Response">
+    <message role="system">You are an assistant. If web page content is provided, review it and answer accordingly.</message>
+    <message role="user">User request: $var{User Prompt}</message>
+  </Prompt>
+</Extern>
+
+<View name="codeMieResponseView" reuse="false" type="Markdown" />
+<Out view="codeMieResponseView">$var{CodeMie Response}</Out>
+```
