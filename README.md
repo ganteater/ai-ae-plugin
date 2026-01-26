@@ -3,6 +3,7 @@
 Content Structure:
 # Project Title
 - Extract the project title from pom.xml and display it as the main heading.
+- Add `![](src/site/resources/images/ai-ae-plugin.png)` before the title.
 - Immediately after the title, add a Maven Central badge as a new paragraph:  
   `[![Maven Central](https://img.shields.io/maven-central/v/[groupId]/[artifactId].svg)](https://central.sonatype.com/artifact/[groupId]/[artifactId])`  
   Replace `[groupId]` and `[artifactId]` with values from pom.xml.
@@ -37,18 +38,18 @@ Content Structure:
 - Ensure each section is clear, concise, and logically organized.
 -->
 
+![](src/site/resources/images/ai-ae-plugin.png)
+
 # AI Anteater Plugin
 
 [![Maven Central](https://img.shields.io/maven-central/v/com.ganteater.plugins/ai-ae-plugin.svg)](https://central.sonatype.com/artifact/com.ganteater.plugins/ai-ae-plugin)
 
 ## Overview
 
-This plugin adds AI-assisted capabilities to Anteater in two complementary areas:
+AI Anteater Plugin extends Anteater with AI-assisted editing and AI-powered automation steps for recipes.
 
-- **Desktop editor assistance**: integrates with the Anteater Desktop editor to send the current document (including selection and caret position) together with relevant runtime context, then applies the AI-generated recipe text back into the editor and refreshes the view.
-- **AI-enabled recipe processors**: provides processors that connect to OpenAI-compatible providers, enabling recipes to send prompts, register recipe tasks as callable tools (functions), list available models, and optionally enable provider features such as web search.
-
-In practical terms, it helps you draft, refine, and automate recipe-based workflows by combining your existing recipe context with an AI model that can generate or transform recipe content.
+- **Editor assistance**: Adds an interactive helper in the Anteater Desktop editor that gathers the current recipe text, caret/selection, and relevant runtime context, then applies AI-generated recipe updates back into the editor.
+- **Recipe processors**: Adds processors that connect to OpenAI-compatible providers, enabling recipes to send prompts, expose recipe tasks as callable tools/functions, list available models, and optionally use provider capabilities such as web search.
 
 ## Installation Instructions
 
@@ -73,7 +74,7 @@ In practical terms, it helps you draft, refine, and automate recipe-based workfl
    mvn -DskipTests package
    ```
 
-3. (Optional) If your build produces an assembled plugin jar via a packaging profile, build it as well:
+3. (Optional) Build the assembled plugin jar (profile `pack`):
 
    ```bash
    mvn -DskipTests package -Ppack
@@ -110,19 +111,16 @@ Maven will download and include the dependency automatically during your build.
 
 ### Code helpers
 
-The code helper integration is intended for the Anteater Desktop editor.
-
-General workflow:
+Use the AI helper inside Anteater Desktop while editing a recipe:
 
 1. Open a recipe in Anteater Desktop.
 2. Invoke the AI code helper from the editor UI.
 3. Provide or confirm provider settings (model, API key and/or base URL, debug options).
-4. The helper collects editor state (text, selection/caret) plus relevant context (available processors/commands, system variables, view information).
-5. The AI response is applied back into the editor as updated recipe text, and the editor view is refreshed.
+4. Review and apply the generated recipe updates that are written back into the editor.
 
 ### Processors
 
-These processors are used from Anteater recipes (XML) and connect to OpenAI-compatible backends.
+Use the processors from Anteater recipes (XML) to interact with OpenAI-compatible backends.
 
 Typical workflow:
 
