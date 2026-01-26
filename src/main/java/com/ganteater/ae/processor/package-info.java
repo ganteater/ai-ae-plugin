@@ -1,65 +1,64 @@
 /**
- * Anteater recipe processors for integrating with OpenAI-compatible LLM providers.
+ * Anteater recipe processors that integrate with OpenAI-compatible LLM providers.
  *
  * <p>
- * The processors in this package extend {@link com.ganteater.ae.processor.BaseProcessor} and are configured from an
- * Anteater recipe using {@code &lt;Extern&gt;}. After initialization, they expose recipe commands for:
+ * Classes in this package are typically instantiated from an Anteater recipe via {@code <Extern>}.
+ * After initialization, a processor exposes recipe commands for:
  * </p>
  * <ul>
- *   <li>sending chat prompts and storing the assistant output into recipe variables ({@code &lt;Prompt&gt;});</li>
- *   <li>registering recipe {@code &lt;Task&gt;} blocks as callable tools for the model ({@code &lt;Function&gt;});</li>
- *   <li>listing available models ({@code &lt;Models&gt;});</li>
- *   <li>enabling optional provider capabilities such as web search ({@code &lt;WebSearch&gt;}).</li>
+ *   <li>sending prompts/messages and storing the assistant output into recipe variables ({@code <Prompt>});</li>
+ *   <li>registering recipe {@code <Task>} blocks as callable tools/functions for the model ({@code <Function>});</li>
+ *   <li>listing available models ({@code <Models>});</li>
+ *   <li>enabling optional provider features (for example, web search) ({@code <WebSearch>}).</li>
  * </ul>
  *
  * <h2>Usage from an Anteater recipe</h2>
  * <p>
- * Processors are declared via {@code &lt;Extern&gt;}. Provider settings (for example, API key, base URL, and model name)
- * are supplied as attributes on {@code &lt;Extern&gt;}. Anteater recipe variables should be referenced using the
- * {@code $var{...}} syntax.
+ * Provider settings (for example, API key, base URL, and model name) are supplied as attributes on
+ * {@code <Extern>}. Anteater recipe variables should be referenced using the {@code $var{...}} syntax.
  * </p>
  *
  * <h3>Configuring a provider</h3>
  * <pre>
- * &amp;lt;Extern class="OpenAI" model="gpt-5-mini" apiKey="$var{OPENAI_API_KEY}" /&amp;gt;
+ * &lt;Extern class="OpenAI" model="gpt-5-mini" apiKey="$var{OPENAI_API_KEY}" /&gt;
  * </pre>
  *
  * <h3>Prompting</h3>
  * <p>
- * {@code &lt;Prompt&gt;} sends one or more {@code &lt;message&gt;} elements and stores the resulting assistant output into the
+ * {@code <Prompt>} sends one or more {@code <message>} elements and stores the resulting assistant output into the
  * variable named by the {@code name} attribute.
  * </p>
  * <pre>
- * &amp;lt;Prompt name="answer"&amp;gt;
- *   &amp;lt;message role="user"&amp;gt;Summarize the release notes.&amp;lt;/message&amp;gt;
- * &amp;lt;/Prompt&amp;gt;
+ * &lt;Prompt name="answer"&gt;
+ *   &lt;message role="user"&gt;Summarize the release notes.&lt;/message&gt;
+ * &lt;/Prompt&gt;
  * </pre>
  *
  * <h3>Defining callable tools (functions)</h3>
  * <p>
- * {@code &lt;Function&gt;} registers a tool with the model. Nested {@code &lt;property&gt;} tags define the tool parameters.
+ * {@code <Function>} registers a tool with the model. Nested {@code <property>} tags define the tool parameters.
  * When the model calls the tool, the processor:
  * </p>
  * <ol>
  *   <li>parses the JSON arguments supplied by the model;</li>
  *   <li>stores each argument value into a recipe variable with the same name as the parameter;</li>
- *   <li>executes the nested recipe {@code &lt;Task&gt;};</li>
+ *   <li>executes the nested recipe {@code <Task>};</li>
  *   <li>returns an optional value read from the recipe variable specified by the {@code return} attribute.</li>
  * </ol>
  * <pre>
- * &amp;lt;Function name="getTicket" description="Fetch a ticket by id" type="object" return="ticket"&amp;gt;
- *   &amp;lt;property name="id" type="string" required="true" /&amp;gt;
- *   &amp;lt;Task&amp;gt;
- *     &amp;lt;!-- recipe code that sets variable "ticket" --&amp;gt;
- *   &amp;lt;/Task&amp;gt;
- * &amp;lt;/Function&amp;gt;
+ * &lt;Function name="getTicket" description="Fetch a ticket by id" type="object" return="ticket"&gt;
+ *   &lt;property name="id" type="string" required="true" /&gt;
+ *   &lt;Task&gt;
+ *     &lt;!-- recipe code that sets variable "ticket" --&gt;
+ *   &lt;/Task&gt;
+ * &lt;/Function&gt;
  * </pre>
  *
  * <h2>Notable classes</h2>
  * <ul>
  *   <li>
  *     {@link com.ganteater.ae.processor.OpenAI} integrates with the OpenAI Responses API (or compatible services) and
- *     provides commands such as {@code &lt;Prompt&gt;}, {@code &lt;Function&gt;}, {@code &lt;Models&gt;}, and {@code &lt;WebSearch&gt;}.
+ *     provides commands such as {@code <Prompt>}, {@code <Function>}, {@code <Models>}, and {@code <WebSearch>}.
  *   </li>
  *   <li>
  *     {@link com.ganteater.ae.processor.CodeMie} obtains an access token using {@code username}/{@code password} and then
@@ -93,5 +92,5 @@ package com.ganteater.ae.processor;
  * 		- Use proper Markdown or HTML formatting for readability.
  *      - When generating Javadoc, if you encounter code blocks inside `<pre>` tags, escape `<` and `>` as `&lt;` 
  *          and `&gt;` as `&gt;` in `<pre>` content for Javadoc. Ensure that the code is properly escaped and formatted for Javadoc. 
- *		- Do not escape `>` in `{@code ... }` blocks.          
+ *		- Do not escape `>` in `{@code ... }` blocks.         
  */
