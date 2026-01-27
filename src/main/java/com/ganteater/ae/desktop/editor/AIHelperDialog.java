@@ -57,6 +57,8 @@ public class AIHelperDialog extends HelperDialog {
 
 	private JTextArea editor = new JTextArea();
 
+	private Thread processThread;
+
 	public AIHelperDialog(final AICodeHelper codeHelper, final OpenAIClient client) throws JsonProcessingException {
 		super(codeHelper);
 
@@ -138,17 +140,21 @@ public class AIHelperDialog extends HelperDialog {
 		}
 	}
 
-	private void perform(final OpenAIClient client) {
-		new Thread(() -> {
-			try {
-				getCodeHelper().setProgress(true);
-				setVisible(false);
-				performRequest(client);
+	private synchronized void perform(final OpenAIClient client) {
+		if (processThread == null) {
+			processThread = new Thread(() -> {
+				try {
+					getCodeHelper().setProgress(true);
+					setVisible(false);
+					performRequest(client);
+					processThread = null;
 
-			} finally {
-				getCodeHelper().setProgress(false);
-			}
-		}).start();
+				} finally {
+					getCodeHelper().setProgress(false);
+				}
+			});
+			processThread.start();
+		}
 	}
 
 	private void addContextInput(String name, String processorInfo) {
@@ -231,11 +237,13 @@ public class AIHelperDialog extends HelperDialog {
 	}
 
 	private void performMessage(List<Content> content) {
-		String responseText = content.get(0).outputText().get().text();
-		debug(new AELogRecord(responseText, "xml", "Output"));
+		if (processThread == Thread.currentThread()) {
+			String responseText = content.get(0).outputText().get().text();
+			debug(new AELogRecord(responseText, "xml", "Output"));
 
-		getCodeHelper().hide();
-		updateCode(responseText);
+			getCodeHelper().hide();
+			updateCode(responseText);
+		}
 	}
 
 	private void updateCode(String responseText) {
@@ -321,6 +329,10 @@ public class AIHelperDialog extends HelperDialog {
 	@Override
 	public AICodeHelper getCodeHelper() {
 		return (AICodeHelper) super.getCodeHelper();
+	}
+
+	public void cancelRequest() {
+		processThread = null;
 	}
 
 }

@@ -59,7 +59,7 @@ public abstract class AbstractAIProcessor extends BaseProcessor {
 	@CommandDescription("Function command to create a function tool. Property tags define the properties of the function tool. "
 			+ "The Task command is called when the model requests the function.")
 	@CommandExamples({
-			"<Function name='type:string' description='type:string' type='enum:string|number|boolean|object|array' return='type:proprty'>"
+			"<Function name='type:string' description='type:string' type='enum:object|number|boolean|array|null|string' return='type:proprty'>"
 					+ "<property name='type:string' type='type:string' required='type:boolean'/>"
 					+ "<Task>...recipe code...</Task>" + "</Function>" })
 	public void runCommandFunction(Node action) {

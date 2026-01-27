@@ -1,5 +1,7 @@
 package com.ganteater.ae.desktop.editor;
 
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -27,7 +29,7 @@ import com.openai.client.okhttp.OpenAIOkHttpClient;
 public class AICodeHelper extends CodeHelper {
 
 	private static final String DEFAULT_MODEL = "gpt-5-mini";
-	
+
 	private String chatModel;
 	private boolean debug;
 
@@ -58,6 +60,14 @@ public class AICodeHelper extends CodeHelper {
 				setProgress(true);
 				client = createClient(taskProcessor, editorNode);
 				AIHelperDialog aiHelperDialog = new AIHelperDialog(this, client);
+				aiProgress.addMouseListener(new MouseAdapter() {
+					@Override
+					public void mouseClicked(MouseEvent e) {
+						aiHelperDialog.cancelRequest();
+						setProgress(false);
+					}
+				});
+
 				super.setDefaultDialog(aiHelperDialog);
 			} catch (IOException e) {
 				getLog().error("Critical error: AI Helper could not be initialized.", e);
@@ -65,6 +75,7 @@ public class AICodeHelper extends CodeHelper {
 				setProgress(false);
 			}
 		}).start();
+
 	}
 
 	protected OpenAIClient createClient(Processor taskProcessor, Node editorNode) throws IOException {
