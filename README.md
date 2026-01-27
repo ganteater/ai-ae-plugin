@@ -48,28 +48,28 @@ Content Structure:
 [![Maven Central](https://img.shields.io/maven-central/v/com.ganteater.plugins/ai-ae-plugin.svg)](https://central.sonatype.com/artifact/com.ganteater.plugins/ai-ae-plugin)
 
 ## Overview
-This project provides an AI plugin for Anteater that adds:
-- Desktop editor assistance for generating and refining Anteater recipes.
-- Recipe processors that connect to OpenAI-compatible providers to run prompts, expose recipe tasks as callable tools, list models, and optionally enable web search.
+This plugin adds AI-powered assistance to Anteater.
 
-In the desktop editor, the helper gathers the current recipe text, caret/selection, and relevant runtime context, sends it to a chat model, and applies the updated recipe back into the editor.
+It includes:
+- Desktop editor helpers that can draft, refine, and fix Anteater recipes using an OpenAI-compatible chat model.
+- Recipe processors that connect to OpenAI-compatible providers so recipes can prompt models, list available models, register tasks as callable tools, and (when supported) use web search.
 
 ## Installation Instructions
 ### Prerequisites
-- Java 9 (as configured by the project)
+- Java 9
 - Apache Maven
-- An Anteater installation (Desktop or CLI) for running the plugin
-- Provider credentials (for example, an OpenAI API key or CodeMie username/password), depending on what you use
+- Anteater (Desktop or CLI)
+- Provider credentials (for example, an OpenAI API key or CodeMie username/password)
 
 ### Clone and Build
-1. Clone the repository.
-2. Build with Maven:
+1. Clone this repository.
+2. Build the project:
 
 ```bash
 mvn -U clean package
 ```
 
-3. (Optional) If the project is configured to assemble a single distributable jar via the `pack` profile:
+3. (Optional) Build an assembled jar (if configured):
 
 ```bash
 mvn -U clean package -Ppack
@@ -78,7 +78,7 @@ mvn -U clean package -Ppack
 ### Download Assembled Jar
 [![Download Jar](https://custom-icon-badges.demolab.com/badge/-Download-blue?style=for-the-badge&logo=download&logoColor=white "Download jar")](https://sourceforge.net/projects/anteater/files/plugins/ai-ae-plugin.jar/download)
 
-1. Download the jar.
+1. Download the `.jar` file.
 2. Copy it into the `plugins` folder of your Anteater installation.
 
 ### Launch Anteater Desktop or CLI
@@ -99,11 +99,12 @@ Maven will download the artifact and include it in your build.
 
 ## Usage
 ### Code Helpers
-The plugin includes desktop editor helpers that initialize an OpenAI-compatible client, collect editor/runtime context, and update the recipe text based on the model’s response.
+The desktop editor integration provides a dialog-driven assistant that gathers the current recipe text, caret/selection, and relevant environment context, then suggests updated recipe content and can apply it back into the editor.
 
-- **AICodeHelper**: Main helper that reads editor configuration (model, debug, apiKey/baseUrl), creates the client, and opens the assistant dialog.
-- **AIHelperDialog**: Collects context (system variables, known processors and views, current editor content), sends a request to the model, and applies the returned recipe text plus optional caret/selection updates.
-- **CodeMieHelper**: Variant that obtains a CodeMie access token from username/password, then creates the OpenAI-compatible client.
+Key components:
+- **AICodeHelper**: Entry point used by the desktop editor. Reads configuration (for example, model, debug, apiKey/baseUrl), initializes an OpenAI-compatible client, and opens the helper dialog.
+- **AIHelperDialog**: Builds the request context (system variables, available processors and views, static instruction resources, current editor state), sends it to the model, and applies the returned recipe text (optionally adjusting caret/selection).
+- **CodeMieHelper**: Alternative helper that authenticates with CodeMie using username/password to obtain an access token, then creates the OpenAI-compatible client.
 
 Example configuration (from `src/ae/ae.xml`):
 
@@ -129,22 +130,15 @@ Example configuration (from `src/ae/ae.xml`):
 ```
 
 ### Processors
-The processors are designed to be used from Anteater recipes via `<Extern>` and then invoked using nested commands.
-
-Provided capabilities include:
-- Prompting a model and storing the assistant output into a recipe variable.
-- Registering recipe tasks as callable tools/functions.
-- Listing available models.
-- Enabling optional web search (provider-dependent).
+The processors are intended to be referenced from Anteater recipes via `<Extern>`, providing recipe-level commands for interacting with an AI provider.
 
 Typical workflow:
 1. Configure a provider in `<Extern>` (credentials, model, optional base URL).
-2. (Optional) Register tools/functions for the model.
-3. Call `<Prompt>` with a simple text body or a sequence of `<message>` items.
-4. Use `<Out>` / `<Var>` / other recipe commands to consume the response.
+2. (Optional) Register tools/functions so the model can call into recipe tasks.
+3. Prompt the model and store the response into a variable.
+4. Use recipe commands to output or further process the response.
 
-#### OpenAI processor example
-Based on `src/ae/recipes/openai/OpenAI.recipe`:
+OpenAI processor example (based on `src/ae/recipes/openai/OpenAI.recipe`):
 
 ```xml
 <Extern class="OpenAI" apiKey="$var{OPENAI_API_KEY}" baseUrl="https://codemie.lab.epam.com/code-assistant-api/v1">
@@ -158,8 +152,7 @@ Based on `src/ae/recipes/openai/OpenAI.recipe`:
 </Extern>
 ```
 
-#### CodeMie processor example
-Based on `src/ae/recipes/codemie/CodeMie Test.recipe`:
+CodeMie processor example (based on `src/ae/recipes/codemie/CodeMie Test.recipe`):
 
 ```xml
 <Var name="CodeMie Username" init="mandatory" />
