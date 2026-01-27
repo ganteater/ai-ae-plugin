@@ -48,28 +48,28 @@ Content Structure:
 [![Maven Central](https://img.shields.io/maven-central/v/com.ganteater.plugins/ai-ae-plugin.svg)](https://central.sonatype.com/artifact/com.ganteater.plugins/ai-ae-plugin)
 
 ## Overview
-This plugin adds AI-powered assistance to Anteater.
+AI Anteater Plugin adds AI-assisted features to the Anteater desktop editor and enables recipes to interact with OpenAI-compatible AI services.
 
-It includes:
-- Desktop editor helpers that can draft, refine, and fix Anteater recipes using an OpenAI-compatible chat model.
-- Recipe processors that connect to OpenAI-compatible providers so recipes can prompt models, list available models, register tasks as callable tools, and (when supported) use web search.
+In the desktop editor, it can open an assistant dialog, gather relevant project and editor context, and apply the suggested changes back into the recipe being edited.
+
+In recipes, it provides commands to send prompts, list available models, register recipe tasks as callable tools/functions, and optionally use provider features such as web search.
 
 ## Installation Instructions
 ### Prerequisites
-- Java 9
+- Java 11
 - Apache Maven
 - Anteater (Desktop or CLI)
 - Provider credentials (for example, an OpenAI API key or CodeMie username/password)
 
 ### Clone and Build
-1. Clone this repository.
+1. Clone the repository.
 2. Build the project:
 
 ```bash
 mvn -U clean package
 ```
 
-3. (Optional) Build an assembled jar (if configured):
+3. (Optional) Build an assembled jar:
 
 ```bash
 mvn -U clean package -Ppack
@@ -99,12 +99,13 @@ Maven will download the artifact and include it in your build.
 
 ## Usage
 ### Code Helpers
-The desktop editor integration provides a dialog-driven assistant that gathers the current recipe text, caret/selection, and relevant environment context, then suggests updated recipe content and can apply it back into the editor.
+These components integrate an AI helper into the desktop editor.
 
-Key components:
-- **AICodeHelper**: Entry point used by the desktop editor. Reads configuration (for example, model, debug, apiKey/baseUrl), initializes an OpenAI-compatible client, and opens the helper dialog.
-- **AIHelperDialog**: Builds the request context (system variables, available processors and views, static instruction resources, current editor state), sends it to the model, and applies the returned recipe text (optionally adjusting caret/selection).
-- **CodeMieHelper**: Alternative helper that authenticates with CodeMie using username/password to obtain an access token, then creates the OpenAI-compatible client.
+What they do:
+- Read editor configuration (for example API key, base URL, model).
+- Collect context from the running application and the current editor state.
+- Send a user prompt plus context to an OpenAI-compatible backend.
+- Apply the returned edits to the open recipe (including caret/selection adjustments when needed).
 
 Example configuration (from `src/ae/ae.xml`):
 
@@ -130,15 +131,15 @@ Example configuration (from `src/ae/ae.xml`):
 ```
 
 ### Processors
-The processors are intended to be referenced from Anteater recipes via `<Extern>`, providing recipe-level commands for interacting with an AI provider.
+These components are used from Anteater recipes via `<Extern>` to interact with an AI provider.
 
 Typical workflow:
 1. Configure a provider in `<Extern>` (credentials, model, optional base URL).
-2. (Optional) Register tools/functions so the model can call into recipe tasks.
+2. (Optional) Register tools/functions so the model can call recipe tasks.
 3. Prompt the model and store the response into a variable.
-4. Use recipe commands to output or further process the response.
+4. Output or further process the response in the recipe.
 
-OpenAI processor example (based on `src/ae/recipes/openai/OpenAI.recipe`):
+OpenAI processor example:
 
 ```xml
 <Extern class="OpenAI" apiKey="$var{OPENAI_API_KEY}" baseUrl="https://codemie.lab.epam.com/code-assistant-api/v1">
@@ -152,7 +153,7 @@ OpenAI processor example (based on `src/ae/recipes/openai/OpenAI.recipe`):
 </Extern>
 ```
 
-CodeMie processor example (based on `src/ae/recipes/codemie/CodeMie Test.recipe`):
+CodeMie processor example:
 
 ```xml
 <Var name="CodeMie Username" init="mandatory" />
