@@ -17,14 +17,9 @@ import com.ganteater.ae.util.xml.easyparser.Node;
  *
  * <p>
  * This class centralizes shared behavior used by concrete provider processors. It supports initialization from an
- * {@code <Extern>} element and implements common recipe commands.
+ * Anteater {@code <Extern>} element and provides common recipe commands for sending prompts and registering callable
+ * tools/functions.
  * </p>
- *
- * <h2>Supported recipe commands</h2>
- * <ul>
- *   <li>{@code <Prompt>}: collects message input, calls the provider, and stores the response in a recipe variable.</li>
- *   <li>{@code <Function>}: registers a recipe {@code <Task>} block as a callable tool/function.</li>
- * </ul>
  */
 public abstract class AbstractAIProcessor extends BaseProcessor {
 

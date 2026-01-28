@@ -46,17 +46,9 @@ import com.openai.models.responses.WebSearchTool.UserLocation;
  * Anteater processor that integrates with the OpenAI Responses API (or compatible services).
  *
  * <p>
- * This processor is intended to be instantiated from an Anteater recipe via {@code <Extern>} and then provides recipe
- * commands.
+ * Instantiate this processor from an Anteater recipe via {@code <Extern>}. The processor then exposes additional recipe
+ * commands such as {@code <Prompt>} and {@code <Function>}.
  * </p>
- *
- * <h2>Supported recipe commands</h2>
- * <ul>
- *   <li>{@code <Prompt>}: send messages and store the assistant output in a variable</li>
- *   <li>{@code <Function>}: register a recipe {@code <Task>} block as a callable tool/function</li>
- *   <li>{@code <Models>}: list available model ids</li>
- *   <li>{@code <WebSearch>}: enable web-search tool configuration for subsequent prompts</li>
- * </ul>
  */
 public class OpenAI extends BaseProcessor {
 

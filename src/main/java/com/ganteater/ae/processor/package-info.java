@@ -26,21 +26,20 @@
  */
 
 /**
- * Anteater recipe processors for integrating with OpenAI-compatible LLM providers.
+ * Anteater recipe processors that integrate with OpenAI-compatible LLM providers.
  *
  * <p>
- * The processors in this package are intended to be instantiated from an Anteater recipe via {@code <Extern>}. They
- * implement recipe commands for sending prompts, registering callable tools/functions backed by recipe {@code <Task>}
- * blocks, and querying provider metadata.
+ * This package contains {@link com.ganteater.ae.processor.BaseProcessor} implementations intended to be instantiated from
+ * an Anteater recipe via {@code <Extern>}. They provide recipe commands for sending prompts, registering callable
+ * tools/functions backed by recipe {@code <Task>} blocks, and querying provider metadata.
  * </p>
  *
- * <h2>Supported providers</h2>
+ * <h2>Included processors</h2>
  * <ul>
- *   <li>{@link com.ganteater.ae.processor.OpenAI} calls the OpenAI Responses API (and compatible services).</li>
- *   <li>{@link com.ganteater.ae.processor.CodeMie} obtains an access token from CodeMie and delegates to
- *   {@link com.ganteater.ae.processor.OpenAI} using a CodeMie base URL.</li>
- *   <li>{@link com.ganteater.ae.processor.AbstractAIProcessor} is a legacy/alternate base class for provider
- *   implementations.</li>
+ *   <li>{@link com.ganteater.ae.processor.OpenAI}: OpenAI Responses API client (and compatible services).</li>
+ *   <li>{@link com.ganteater.ae.processor.CodeMie}: authenticates to CodeMie, then delegates to {@link com.ganteater.ae.processor.OpenAI}
+ *       using a CodeMie base URL.</li>
+ *   <li>{@link com.ganteater.ae.processor.AbstractAIProcessor}: legacy/alternate base class for provider implementations.</li>
  * </ul>
  *
  * <h2>Recipe integration</h2>
