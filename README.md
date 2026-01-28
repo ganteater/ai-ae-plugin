@@ -43,7 +43,7 @@ Content Structure:
 - **The Anteater: External Accessor**  
   - VIDEO_TITLE: "The Anteater: CodeMie Processor";
   - VIDEO_ID: "8d-ulZaNHmg".
-- Use following format for youtube video embedding on the page: [![VIDEO_TITLE](https://img.youtube.com/vi/VIDEO_ID/0.jpg)](https://www.youtube.com/watch?v=VIDEO_ID)
+- Use following format for youtube video embedding on the page: [![VIDEO_TITLE](https://img.youtube.com/vi/VIDEO_ID/mqdefault.jpg)](https://www.youtube.com/watch?v=VIDEO_ID)
 tools.
 # **Formatting Requirements:**
 - Use Markdown syntax for all headings, lists, code blocks, and links.
@@ -225,6 +225,6 @@ CodeMie processor example (from `src/ae/recipes/codemie/CodeMie Test.recipe`):
 ```
 
 ## Demo & Tutorial
-[![The Anteater: AI Anteater Plugin](https://img.youtube.com/vi/bt8eS8iDjsc/0.jpg)](https://www.youtube.com/watch?v=bt8eS8iDjsc)
+[![The Anteater: AI Anteater Plugin](https://img.youtube.com/vi/bt8eS8iDjsc/mqdefault.jpg)](https://www.youtube.com/watch?v=bt8eS8iDjsc)
 
-[![The Anteater: CodeMie Processor](https://img.youtube.com/vi/8d-ulZaNHmg/0.jpg)](https://www.youtube.com/watch?v=8d-ulZaNHmg)
+[![The Anteater: CodeMie Processor](https://img.youtube.com/vi/8d-ulZaNHmg/mqdefault.jpg)](https://www.youtube.com/watch?v=8d-ulZaNHmg)
