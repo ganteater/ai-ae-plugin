@@ -12,6 +12,26 @@ import com.ganteater.ae.processor.annotation.CommandDescription;
 import com.ganteater.ae.processor.annotation.CommandExamples;
 import com.ganteater.ae.util.xml.easyparser.Node;
 
+/**
+ * Base processor for implementing LLM-backed Anteater commands.
+ *
+ * <p>
+ * This class provides common behavior for processors that:
+ * </p>
+ * <ul>
+ *   <li>are configured via {@code <Extern>} attributes such as {@code model} and {@code apiKey}</li>
+ *   <li>expose {@code <Prompt>} to send one or more {@code <message>} elements and store the response into a variable</li>
+ *   <li>expose {@code <Function>} to register a recipe {@code <Task>} block as a callable tool/function</li>
+ * </ul>
+ *
+ * <p>
+ * Concrete implementations must provide:
+ * </p>
+ * <ul>
+ *   <li>{@link #perform(List)} to send prompt inputs and return a text response</li>
+ *   <li>{@link #addFunctionTool(Node, Map)} to register a tool definition with the provider implementation</li>
+ * </ul>
+ */
 public abstract class AbstractAIProcessor extends BaseProcessor {
 
 	static final String DEFAULT_ROLE = "user";
@@ -31,8 +51,8 @@ public abstract class AbstractAIProcessor extends BaseProcessor {
 	}
 
 	@CommandDescription("The 'name' attribute is used to define the property name where the response will be stored.")
-	@CommandExamples({ "<Prompt name='type:property'>...</Prompt>",
-			"<Prompt name='type:property'><message>...</message></Prompt>" })
+	@CommandExamples({ "<Prompt name=\"type:property\">...</Prompt>",
+			"<Prompt name=\"type:property\"><message>...</message></Prompt>" })
 	public void runCommandPrompt(Node action) throws CommandException {
 		String name = action.getAttribute("name");
 		ArrayList<String> inputs = new ArrayList<>();
@@ -59,8 +79,8 @@ public abstract class AbstractAIProcessor extends BaseProcessor {
 	@CommandDescription("Function command to create a function tool. Property tags define the properties of the function tool. "
 			+ "The Task command is called when the model requests the function.")
 	@CommandExamples({
-			"<Function name='type:string' description='type:string' type='enum:object|number|boolean|array|null|string' return='type:proprty'>"
-					+ "<property name='type:string' type='type:string' required='type:boolean'/>"
+			"<Function name=\"type:string\" description=\"type:string\" type=\"enum:object|number|boolean|array|null|string\" return=\"type:proprty\">"
+					+ "<property name=\"type:string\" type=\"type:string\" required=\"type:boolean\"/>"
 					+ "<Task>...recipe code...</Task>" + "</Function>" })
 	public void runCommandFunction(Node action) {
 

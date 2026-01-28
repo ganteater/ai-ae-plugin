@@ -48,14 +48,17 @@ import com.openai.models.responses.ResponseInputItem.Message;
 import com.openai.models.responses.ResponseOutputMessage.Content;
 import com.openai.models.responses.ResponseUsage;
 
+/**
+ * Prompt dialog that builds request context, sends a completion request, and applies the returned editor updates.
+ */
 public class AIHelperDialog extends HelperDialog {
 
 	private static final long serialVersionUID = 1L;
 
 	private static final String OUTPUT_FORMAT_RESOURCE_NAME = "/output-format.md";
-	private static Map<String, ResponseInputItem> contextMap = new LinkedHashMap<>();
+	private static final Map<String, ResponseInputItem> CONTEXT_MAP = new LinkedHashMap<>();
 
-	private JTextArea editor = new JTextArea();
+	private final JTextArea editor = new JTextArea();
 
 	private Thread processThread;
 
@@ -162,7 +165,7 @@ public class AIHelperDialog extends HelperDialog {
 				.role(com.openai.models.responses.ResponseInputItem.Message.Role.SYSTEM)
 				.addInputTextContent(processorInfo).build();
 
-		contextMap.put(name, ResponseInputItem.ofMessage(message));
+		CONTEXT_MAP.put(name, ResponseInputItem.ofMessage(message));
 	}
 
 	protected void performRequest(OpenAIClient client) {
@@ -171,7 +174,7 @@ public class AIHelperDialog extends HelperDialog {
 
 			List<ResponseInputItem> inputs = new ArrayList<>();
 
-			Collection<Entry<String, ResponseInputItem>> contextEntrySet = contextMap.entrySet();
+			Collection<Entry<String, ResponseInputItem>> contextEntrySet = CONTEXT_MAP.entrySet();
 			for (Entry<String, ResponseInputItem> contextEntry : contextEntrySet) {
 				ResponseInputItem value = contextEntry.getValue();
 				String text = value.message().get().content().get(0).inputText().get().text();
@@ -278,7 +281,6 @@ public class AIHelperDialog extends HelperDialog {
 
 			}
 		} catch (JsonProcessingException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
@@ -303,11 +305,20 @@ public class AIHelperDialog extends HelperDialog {
 		}
 	}
 
+	/**
+	 * Parses a JSON string into an OpenAI {@link JsonValue}.
+	 *
+	 * <p>
+	 * This method does not attempt to normalize quotes; callers must provide valid JSON.
+	 * </p>
+	 *
+	 * @param value JSON text
+	 * @return parsed JSON
+	 */
 	public static JsonValue jsonValue(String value) {
 		ObjectMapper objectMapper = new ObjectMapper();
-		JsonNode node;
 		try {
-			node = objectMapper.readTree(value.replace('\'', '\"'));
+			JsonNode node = objectMapper.readTree(value);
 			return JsonValue.fromJsonNode(node);
 		} catch (JsonProcessingException e) {
 			throw new IllegalArgumentException(e);

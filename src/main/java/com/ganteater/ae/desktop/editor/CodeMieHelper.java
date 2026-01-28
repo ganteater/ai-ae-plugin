@@ -8,6 +8,14 @@ import com.ganteater.ae.util.xml.easyparser.Node;
 import com.openai.client.OpenAIClient;
 import com.openai.client.okhttp.OpenAIOkHttpClient;
 
+/**
+ * {@link AICodeHelper} specialization that authenticates using CodeMie credentials.
+ *
+ * <p>
+ * The editor node is expected to provide {@code username} and {@code password} attributes; an access token is
+ * retrieved via {@link CodeMie#getToken(String, String)} and then used as the API key for the OpenAI client.
+ * </p>
+ */
 public class CodeMieHelper extends AICodeHelper {
 
 	public CodeMieHelper(TextEditor textEditor) throws IOException, IllegalAccessException {
@@ -18,9 +26,8 @@ public class CodeMieHelper extends AICodeHelper {
 	protected OpenAIClient createClient(Processor taskProcessor, Node editorNode) throws IOException {
 		String username = taskProcessor.attr(editorNode, "username");
 		String password = taskProcessor.attr(editorNode, "password");
-		
+
 		String apiKey = CodeMie.getToken(username, password);
-		OpenAIClient client = OpenAIOkHttpClient.builder().apiKey(apiKey).baseUrl(CodeMie.baseUrl).build();
-		return client;
+		return OpenAIOkHttpClient.builder().apiKey(apiKey).baseUrl(CodeMie.baseUrl).build();
 	}
 }

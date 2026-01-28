@@ -15,6 +15,18 @@ import com.ganteater.ae.processor.annotation.CommandDescription;
 import com.ganteater.ae.processor.annotation.CommandExamples;
 import com.ganteater.ae.util.xml.easyparser.Node;
 
+/**
+ * OpenAI-compatible processor that authenticates against CodeMie and delegates calls to {@link OpenAI}.
+ *
+ * <p>
+ * The processor exchanges a {@code username}/{@code password} pair for an access token and then configures the base
+ * OpenAI implementation with:
+ * </p>
+ * <ul>
+ *   <li>{@code apiKey}: the retrieved access token</li>
+ *   <li>{@code baseUrl}: CodeMie OpenAI-compatible endpoint</li>
+ * </ul>
+ */
 public class CodeMie extends OpenAI {
 
 	public static String url = "https://keycloak.eks-core.aws.main.edp.projects.epam.com/auth/realms/codemie-prod/protocol/openid-connect/token";
@@ -23,7 +35,7 @@ public class CodeMie extends OpenAI {
 	@Override
 	@CommandDescription("CodeMie processor supports command to call CodeMie API services.\r\n"
 			+ "`username` and `password` are required.")
-	@CommandExamples({ "<Extern class='CodeMie' username='type:string' password='type:password'/>" })
+	@CommandExamples({ "<Extern class=\"CodeMie\" username=\"type:string\" password=\"type:password\"/>" })
 	public void init(Processor parentProcessor, Node action) throws CommandException {
 		String username = parentProcessor.attr(action, "username");
 		String password = parentProcessor.attr(action, "password");

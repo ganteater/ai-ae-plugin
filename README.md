@@ -48,22 +48,30 @@ Content Structure:
 [![Maven Central](https://img.shields.io/maven-central/v/com.ganteater.plugins/ai-ae-plugin.svg)](https://central.sonatype.com/artifact/com.ganteater.plugins/ai-ae-plugin)
 
 ## Overview
-AI Anteater Plugin adds AI-assisted features to the Anteater desktop editor and enables recipes to interact with OpenAI-compatible AI services.
+AI Anteater Plugin extends Anteater with AI-assisted authoring in the desktop editor and AI-driven automation in recipes.
 
-In the desktop editor, it can open an assistant dialog, gather relevant project and editor context, and apply the suggested changes back into the recipe being edited.
+In the desktop editor, it adds a guided prompt experience that uses the current document and other relevant context to request updates from an OpenAI-compatible service, then applies the returned changes directly into the editor.
 
-In recipes, it provides commands to send prompts, list available models, register recipe tasks as callable tools/functions, and optionally use provider features such as web search.
+In automation workflows, it provides recipe processors that can send prompts (including multi-message conversations), list available models, enable optional web-search tooling, and expose recipe tasks as callable tools/functions so a model can request structured actions and receive results.
 
 ## Installation Instructions
 ### Prerequisites
 - Java 11
 - Apache Maven
 - Anteater (Desktop or CLI)
-- Provider credentials (for example, an OpenAI API key or CodeMie username/password)
+- AI provider credentials:
+  - OpenAI-compatible API key (for example, OpenAI), or
+  - CodeMie username/password
 
 ### Clone and Build
-1. Clone the repository.
-2. Build the project:
+1. Clone the repository:
+
+```bash
+git clone https://github.com/ganteater/ai-ae-plugin.git
+cd ai-ae-plugin
+```
+
+2. Build the plugin:
 
 ```bash
 mvn -U clean package
@@ -99,13 +107,10 @@ Maven will download the artifact and include it in your build.
 
 ## Usage
 ### Code Helpers
-These components integrate an AI helper into the desktop editor.
-
-What they do:
-- Read editor configuration (for example API key, base URL, model).
-- Collect context from the running application and the current editor state.
-- Send a user prompt plus context to an OpenAI-compatible backend.
-- Apply the returned edits to the open recipe (including caret/selection adjustments when needed).
+The plugin integrates into the desktop recipe editor through editor helpers:
+- **AICodeHelper** reads configuration (model, base URL, API key, debug flag), initializes an OpenAI-compatible client asynchronously, and exposes a small progress indicator.
+- **AIHelperDialog** collects editor state (content, caret, selection) and environment context (available commands, views, and system variables), sends the combined request to the AI provider, and applies the returned recipe updates back into the editor.
+- **CodeMieHelper** authenticates using a username/password flow to obtain a token and then uses that token when creating the OpenAI-compatible client.
 
 Example configuration (from `src/ae/ae.xml`):
 
@@ -131,34 +136,72 @@ Example configuration (from `src/ae/ae.xml`):
 ```
 
 ### Processors
-These components are used from Anteater recipes via `<Extern>` to interact with an AI provider.
+Processors are used from Anteater recipes via `<Extern>` to interact with an OpenAI-compatible provider.
 
 Typical workflow:
-1. Configure a provider in `<Extern>` (credentials, model, optional base URL).
-2. (Optional) Register tools/functions so the model can call recipe tasks.
-3. Prompt the model and store the response into a variable.
-4. Output or further process the response in the recipe.
+1. Configure the provider in `<Extern>` (credentials, default model, optional base URL).
+2. (Optional) Register callable tools/functions that map to recipe tasks.
+3. Send a prompt (single text or multiple `<message>` entries).
+4. Store and use the assistant response as a recipe variable.
 
-OpenAI processor example:
+Model listing example (from `src/ae/recipes/openai/OpenAI.recipe`):
 
 ```xml
 <Extern class="OpenAI" apiKey="$var{OPENAI_API_KEY}" baseUrl="https://codemie.lab.epam.com/code-assistant-api/v1">
   <Models name="models" />
   <Var name="model" source="models" init="console" />
 </Extern>
+```
 
+Prompt example (from `src/ae/recipes/openai/OpenAI.recipe`):
+
+```xml
 <Extern class="OpenAI" model="gpt-5-2-2025-12-11" apiKey="$var{OPENAI_API_KEY}" baseUrl="https://codemie.lab.epam.com/code-assistant-api/v1">
   <Prompt name="responseText">Write a short poem about the beauty of nature.</Prompt>
   <Out name="responseText" level="info" />
 </Extern>
 ```
 
-CodeMie processor example:
+Function tool example (from `src/ae/recipes/openai/Function Tool Test.recipe`):
+
+```xml
+<Extern class="OpenAI" model="gpt-5-mini" apiKey="$var{OPENAI_API_KEY}">
+  <Function name="get-weather" description="Get current weather for a city" type="object" return="weatherResult">
+    <property name="city" type="string" required="true" />
+    <Task>
+      <Var name="weatherResult">{ "city": "$var{city}", "forecast": "sunny" }</Var>
+      <Out name="city" level="info" />
+      <Out name="weatherResult" level="info" />
+    </Task>
+  </Function>
+
+  <Prompt name="openaiResponse">
+    <message role="system">You are a helpful assistant that can call function get-weather when asked.</message>
+    <message role="user">What is the weather in Paris?</message>
+  </Prompt>
+
+  <Out name="openaiResponse" level="info" />
+</Extern>
+```
+
+Web search tool example (from `src/ae/recipes/openai/WebSearch Tool Test.recipe`):
+
+```xml
+<Extern class="CodeMie" username="$var{CODEMIE USERNAME}" password="$var{CODEMIE PASSWORD}">
+  <Models name="models" />
+  <Var name="models" init="console" />
+  <WebSearch type="web_search_preview" />
+  <Prompt name="response" model="$var{models}">What is it ganteater.com site?</Prompt>
+  <Out name="response" />
+</Extern>
+```
+
+CodeMie processor example (from `src/ae/recipes/codemie/CodeMie Test.recipe`):
 
 ```xml
 <Var name="CodeMie Username" init="mandatory" />
 <Var name="CodeMie Password" init="mandatory" type="password" />
-<Var name="User Prompt" init="mandatory" type="text" />
+<Var name="User Prompt" init="mandatory" />
 
 <Extern class="CodeMie" username="$var{CodeMie Username}" password="$var{CodeMie Password}" model="gpt-4o-2024-11-20">
   <Prompt name="CodeMie Response">

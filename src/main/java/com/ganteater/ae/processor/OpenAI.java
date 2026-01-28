@@ -42,6 +42,20 @@ import com.openai.models.responses.Tool;
 import com.openai.models.responses.WebSearchTool;
 import com.openai.models.responses.WebSearchTool.UserLocation;
 
+/**
+ * Anteater processor that integrates with the OpenAI Responses API (or compatible services).
+ *
+ * <p>
+ * This processor is intended to be instantiated from an Anteater recipe via {@code <Extern>} and then provides
+ * commands such as:
+ * </p>
+ * <ul>
+ *   <li>{@code <Prompt>} - send messages and store the assistant output in a variable</li>
+ *   <li>{@code <Function>} - register a recipe {@code <Task>} block as a callable tool/function</li>
+ *   <li>{@code <Models>} - list available model ids</li>
+ *   <li>{@code <WebSearch>} - enable web-search tool configuration for subsequent prompts</li>
+ * </ul>
+ */
 public class OpenAI extends BaseProcessor {
 
 	private static final String DEFAULT_ROLE = "user";
@@ -56,7 +70,7 @@ public class OpenAI extends BaseProcessor {
 			+ "`model` attribut set the chatModel name. For Extern tag it is optional.\r\n"
 			+ "`baseUrl` defines custom base URL for OpenAI-compatible services (optional).\r\n")
 	@CommandExamples({
-			"<Extern class='OpenAI' model='enum:gpt-5|gpt-5-mini' apiKey='type:string' baseUrl='type:url' />" })
+			"<Extern class=\"OpenAI\" model=\"enum:gpt-5|gpt-5-mini\" apiKey=\"type:string\" baseUrl=\"type:url\" />" })
 	public void init(Processor parentProcessor, Node action) throws CommandException {
 		super.init(parentProcessor, action);
 		chatModel = attr(action, "model", DEFAULT_MODEL_NAME);
@@ -72,9 +86,9 @@ public class OpenAI extends BaseProcessor {
 
 	@CommandDescription("The 'name' attribute is used to define the property name where the response will be stored.\r\n"
 			+ "`model` attribut should be defined in this command or Extern as a default model.\r\n")
-	@CommandExamples({ "<Prompt name='type:property'>...</Prompt>",
-			"<Prompt name='type:property' model='type:string'>...</Prompt>",
-			"<Prompt name='type:property' model='type:string'><message role='enum:user|system|developer'>...</message></Messages>" })
+	@CommandExamples({ "<Prompt name=\"type:property\">...</Prompt>",
+			"<Prompt name=\"type:property\" model=\"type:string\">...</Prompt>",
+			"<Prompt name=\"type:property\" model=\"type:string\"><message role=\"enum:user|system|developer\">...</message></Messages>" })
 	public void runCommandPrompt(Node action) throws CommandException {
 		String name = attr(action, "name");
 		String model = Optional.ofNullable(attr(action, "model")).orElse(chatModel);
@@ -107,45 +121,47 @@ public class OpenAI extends BaseProcessor {
 		}
 
 		Response response = client.responses().create(builder.build());
+		if (!isStopped()) {
+			List<ResponseInputItem> funcInputs = new ArrayList<>();
+			List<ResponseInputItem> reasoningInputs = new ArrayList<>();
+			response.output().forEach(item -> {
+				if (item.isFunctionCall()) {
+					ResponseFunctionToolCall functionCall = item.asFunctionCall();
 
-		List<ResponseInputItem> funcInputs = new ArrayList<>();
-		List<ResponseInputItem> reasoningInputs = new ArrayList<>();
-		response.output().forEach(item -> {
-			if (item.isFunctionCall()) {
-				ResponseFunctionToolCall functionCall = item.asFunctionCall();
-
-				funcInputs.add(ResponseInputItem.ofFunctionCall(functionCall));
-				try {
-					Object callFunction = ObjectUtils.defaultIfNull(callFunction(functionCall), StringUtils.EMPTY);
-					funcInputs.add(ResponseInputItem.ofFunctionCallOutput(ResponseInputItem.FunctionCallOutput.builder()
-							.callId(functionCall.callId()).outputAsJson(callFunction).build()));
-				} catch (CommandException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+					funcInputs.add(ResponseInputItem.ofFunctionCall(functionCall));
+					try {
+						Object callFunction = ObjectUtils.defaultIfNull(callFunction(functionCall), StringUtils.EMPTY);
+						funcInputs.add(
+								ResponseInputItem.ofFunctionCallOutput(ResponseInputItem.FunctionCallOutput.builder()
+										.callId(functionCall.callId()).outputAsJson(callFunction).build()));
+					} catch (CommandException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
 				}
-			}
-			if (item.isReasoning()) {
-				ResponseInputItem reasoning = ResponseInputItem.ofReasoning(item.asReasoning());
-				reasoningInputs.add(reasoning);
-			}
-		});
+				if (item.isReasoning()) {
+					ResponseInputItem reasoning = ResponseInputItem.ofReasoning(item.asReasoning());
+					reasoningInputs.add(reasoning);
+				}
+			});
 
-		if (!funcInputs.isEmpty()) {
-			inputs.addAll(reasoningInputs);
-			inputs.addAll(funcInputs);
-			builder.input(ResponseCreateParams.Input.ofResponse(inputs));
-			response = client.responses().create(builder.build());
+			if (!funcInputs.isEmpty()) {
+				inputs.addAll(reasoningInputs);
+				inputs.addAll(funcInputs);
+				builder.input(ResponseCreateParams.Input.ofResponse(inputs));
+				response = client.responses().create(builder.build());
+			}
+
+			setVariable(name, response);
 		}
-
-		setVariable(name, response);
 	}
 
 	@CommandDescription("Function command to create a function tool. Property tags define the properties of the function tool. "
 			+ "The Task command is called when the model requests the function.")
 	@CommandExamples({
-			"<Function name='type:string' description='type:string' type='enum:string|number|boolean|object|array' return='type:property'>"
-					+ "<property name='type:string' type='type:string' required='type:boolean'/>"
-					+ "<Task>\n<Var name='return' value='...'/>\n</Task>" + "</Function>" })
+			"<Function name=\"type:string\" description=\"type:string\" type=\"enum:string|number|boolean|object|array\" return=\"type:property\">"
+					+ "<property name=\"type:string\" type=\"type:string\" required=\"type:boolean\"/>"
+					+ "<Task>\n<Var name=\"return\" value=\"...\"/>\n</Task>" + "</Function>" })
 	public void runCommandFunction(Node action) {
 		String name = attr(action, "name");
 		String description = attr(action, "description");
@@ -199,7 +215,6 @@ public class OpenAI extends BaseProcessor {
 				FunctionTool functionTool = tool.function().get();
 				if (functionTool.name().equals(name)) {
 					Node functionNode = entry.getValue();
-					@SuppressWarnings("unchecked")
 					ObjectMapper mapper = new ObjectMapper();
 					try {
 						JsonNode args = mapper.readTree(function.arguments());
@@ -228,7 +243,7 @@ public class OpenAI extends BaseProcessor {
 		return returnValue;
 	}
 
-	@CommandExamples("<Models name='type:property' />")
+	@CommandExamples("<Models name=\"type:property\" />")
 	public void runCommandModels(Node action) {
 		String name = attr(action, "name");
 		List<com.openai.models.models.Model> models = client.models().list(ModelListParams.none()).data();
@@ -236,8 +251,8 @@ public class OpenAI extends BaseProcessor {
 		setVariableValue(name, result);
 	}
 
-	@CommandExamples({ "<WebSearch type='enum:web_search_preview|web_search_preview_2025_03_11'/>",
-			"<WebSearch type='enum:web_search_preview|web_search_preview_2025_03_11' city='type:string' country='type:string' region='type:string' />" })
+	@CommandExamples({ "<WebSearch type=\"enum:web_search_preview|web_search_preview_2025_03_11\"/>",
+			"<WebSearch type=\"enum:web_search_preview|web_search_preview_2025_03_11\" city=\"type:string\" country=\"type:string\" region=\"type:string\" />" })
 	public void runCommandWebSearch(Node action) {
 		String type = attr(action, "type", "web_search_preview");
 
