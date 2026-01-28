@@ -25,33 +25,29 @@
  *     - Do NOT escape `>` in `{@code ... }` blocks.
  */
 /**
- * Desktop editor integration for AI-assisted editing of Anteater recipe text.
+ * Desktop editor integration for AI-assisted Anteater recipe editing.
  *
  * <p>
- * The types in this package attach an AI helper UI to a {@link com.ganteater.ae.desktop.editor.TextEditor}. They gather
- * the current editor state (content, caret, selection) along with runtime context (available processors/commands, views,
- * and system variables), send that combined input to an OpenAI-compatible backend, and apply the returned JSON result
- * back into the editor.
+ * This package connects a {@link com.ganteater.ae.desktop.editor.TextEditor} to an OpenAI-compatible backend.
+ * It loads static prompt context from resources, generates dynamic context (system variables, processor/command
+ * metadata, and registered desktop views), submits that context along with the current editor state and the user's
+ * prompt, and applies the backend response by updating the recipe text and caret/selection.
  * </p>
  *
- * <h2>Main components</h2>
+ * <h2>Key types</h2>
  * <ul>
- *   <li>{@link com.ganteater.ae.desktop.editor.AICodeHelper} installs the integration, initializes an
- *       {@link com.openai.client.OpenAIClient} asynchronously based on editor-node attributes (such as {@code apiKey},
- *       {@code baseUrl}, {@code model}, {@code debug}), and exposes a progress indicator.</li>
- *   <li>{@link com.ganteater.ae.desktop.editor.AIHelperDialog} provides the prompt UI, loads static markdown context
- *       resources, serializes editor/context models to JSON, performs the request, and applies the response by updating
- *       text and optionally caret/selection.</li>
- *   <li>{@link com.ganteater.ae.desktop.editor.CodeMieHelper} specializes {@link com.ganteater.ae.desktop.editor.AICodeHelper}
- *       to obtain an access token via {@link com.ganteater.ae.processor.CodeMie} credentials and use it when creating
- *       the OpenAI client.</li>
+ *   <li>{@link com.ganteater.ae.desktop.editor.AICodeHelper} installs AI support into an editor, initializes an
+ *       {@link com.openai.client.OpenAIClient} asynchronously, and manages progress/cancel wiring.</li>
+ *   <li>{@link com.ganteater.ae.desktop.editor.AIHelperDialog} displays the prompt UI, builds the request payload, and
+ *       applies the resulting JSON update to the editor and triggers recompilation.</li>
+ *   <li>{@link com.ganteater.ae.desktop.editor.CodeMieHelper} authenticates via
+ *       {@link com.ganteater.ae.processor.CodeMie} and uses the retrieved token as the client API key.</li>
  * </ul>
  *
- * <h2>Response contract</h2>
+ * <h2>Expected backend output</h2>
  * <p>
- * The backend response is expected to be JSON containing {@code generatedOutputRecipeCode} and optionally
- * {@code caretPosition} and {@code selection} (with {@code startPosition} and {@code endPosition}). After applying the
- * update, the editor recompiles the recipe and refreshes related UI state.
+ * The backend is expected to return a JSON object containing {@code generatedOutputRecipeCode} and optionally
+ * {@code caretPosition} and {@code selection} (with {@code startPosition} and {@code endPosition}).
  * </p>
  */
 package com.ganteater.ae.desktop.editor;

@@ -49,7 +49,22 @@ import com.openai.models.responses.ResponseOutputMessage.Content;
 import com.openai.models.responses.ResponseUsage;
 
 /**
- * Prompt dialog that builds request context, sends a completion request, and applies the returned editor updates.
+ * Floating prompt dialog that submits the current editor state to an OpenAI-compatible backend.
+ *
+ * <p>
+ * The dialog assembles a message list consisting of:
+ * </p>
+ * <ul>
+ *   <li>static markdown context loaded from resources</li>
+ *   <li>generated JSON context about system variables, processors/commands, and views</li>
+ *   <li>the current editor state (content, caret, selection)</li>
+ *   <li>the user's prompt text</li>
+ * </ul>
+ *
+ * <p>
+ * The backend response is expected to be JSON containing {@code generatedOutputRecipeCode} and optionally
+ * {@code caretPosition} and {@code selection}. The dialog applies these updates to the editor and recompiles the recipe.
+ * </p>
  */
 public class AIHelperDialog extends HelperDialog {
 
@@ -168,6 +183,11 @@ public class AIHelperDialog extends HelperDialog {
 		CONTEXT_MAP.put(name, ResponseInputItem.ofMessage(message));
 	}
 
+	/**
+	 * Executes the request against the backend and applies the resulting updates to the editor.
+	 *
+	 * @param client OpenAI-compatible client
+	 */
 	protected void performRequest(OpenAIClient client) {
 		try {
 			TextEditor textEditor = getCodeHelper().getEditor();
@@ -325,6 +345,12 @@ public class AIHelperDialog extends HelperDialog {
 		}
 	}
 
+	/**
+	 * Placeholder hook for retrieving processor metadata for a given processor name.
+	 *
+	 * @param processorName processor identifier
+	 * @return processor description (currently not implemented)
+	 */
 	public Object getProcessorDescription(Object processorName) {
 		return null;
 	}
@@ -342,6 +368,14 @@ public class AIHelperDialog extends HelperDialog {
 		return (AICodeHelper) super.getCodeHelper();
 	}
 
+	/**
+	 * Cancels the in-flight request (best-effort).
+	 *
+	 * <p>
+	 * The current implementation marks the request thread as cleared; the background thread continues running but its
+	 * output is ignored.
+	 * </p>
+	 */
 	public void cancelRequest() {
 		processThread = null;
 	}

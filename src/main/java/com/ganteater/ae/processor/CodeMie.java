@@ -19,8 +19,8 @@ import com.ganteater.ae.util.xml.easyparser.Node;
  * OpenAI-compatible processor that authenticates against CodeMie and delegates calls to {@link OpenAI}.
  *
  * <p>
- * The processor exchanges a {@code username}/{@code password} pair for an access token and then configures the base
- * OpenAI implementation with:
+ * During initialization this processor exchanges a {@code username}/{@code password} pair for an access token and then
+ * configures the base {@link OpenAI} implementation with:
  * </p>
  * <ul>
  *   <li>{@code apiKey}: the retrieved access token</li>
@@ -34,7 +34,7 @@ public class CodeMie extends OpenAI {
 
 	@Override
 	@CommandDescription("CodeMie processor supports command to call CodeMie API services.\r\n"
-			+ "`username` and `password` are required.")
+			+ "`username` and `password` are required.\r\n")
 	@CommandExamples({ "<Extern class=\"CodeMie\" username=\"type:string\" password=\"type:password\"/>" })
 	public void init(Processor parentProcessor, Node action) throws CommandException {
 		String username = parentProcessor.attr(action, "username");
@@ -47,7 +47,7 @@ public class CodeMie extends OpenAI {
 			super.init(parentProcessor, action);
 
 		} catch (IOException e) {
-			throw new CommandException("CodeMie processor inititialization faile: " + e.getMessage(), this);
+			throw new CommandException("CodeMie processor initialization failed: " + e.getMessage(), this);
 		}
 	}
 
@@ -80,8 +80,7 @@ public class CodeMie extends OpenAI {
 				String accessToken = StringUtils.substringBetween(response.toString(), "\"access_token\":\"", "\",");
 				return accessToken;
 			}
-		} else {
-			throw new IOException("Failed to obtain token: received HTTP response code " + responseCode);
 		}
+		throw new IOException("Failed to obtain token: received HTTP response code " + responseCode);
 	}
 }

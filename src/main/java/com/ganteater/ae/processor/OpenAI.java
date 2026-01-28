@@ -46,14 +46,16 @@ import com.openai.models.responses.WebSearchTool.UserLocation;
  * Anteater processor that integrates with the OpenAI Responses API (or compatible services).
  *
  * <p>
- * This processor is intended to be instantiated from an Anteater recipe via {@code <Extern>} and then provides
- * commands such as:
+ * This processor is intended to be instantiated from an Anteater recipe via {@code <Extern>} and then provides recipe
+ * commands.
  * </p>
+ *
+ * <h2>Supported recipe commands</h2>
  * <ul>
- *   <li>{@code <Prompt>} - send messages and store the assistant output in a variable</li>
- *   <li>{@code <Function>} - register a recipe {@code <Task>} block as a callable tool/function</li>
- *   <li>{@code <Models>} - list available model ids</li>
- *   <li>{@code <WebSearch>} - enable web-search tool configuration for subsequent prompts</li>
+ *   <li>{@code <Prompt>}: send messages and store the assistant output in a variable</li>
+ *   <li>{@code <Function>}: register a recipe {@code <Task>} block as a callable tool/function</li>
+ *   <li>{@code <Models>}: list available model ids</li>
+ *   <li>{@code <WebSearch>}: enable web-search tool configuration for subsequent prompts</li>
  * </ul>
  */
 public class OpenAI extends BaseProcessor {
@@ -63,12 +65,12 @@ public class OpenAI extends BaseProcessor {
 	private OpenAIClient client;
 	private String chatModel;
 
-	private Map<Tool, Node> toolsMap = new HashMap<>();
+	private final Map<Tool, Node> toolsMap = new HashMap<>();
 
 	@Override
-	@CommandDescription("OpenAI processor supports command to call OpenAI services.\r\n"
-			+ "`model` attribut set the chatModel name. For Extern tag it is optional.\r\n"
-			+ "`baseUrl` defines custom base URL for OpenAI-compatible services (optional).\r\n")
+	@CommandDescription("OpenAI processor supports commands to call OpenAI-compatible services.\r\n"
+			+ "`model` attribute sets the default model name (optional).\r\n"
+			+ "`baseUrl` defines a custom base URL for OpenAI-compatible services (optional).\r\n")
 	@CommandExamples({
 			"<Extern class=\"OpenAI\" model=\"enum:gpt-5|gpt-5-mini\" apiKey=\"type:string\" baseUrl=\"type:url\" />" })
 	public void init(Processor parentProcessor, Node action) throws CommandException {
@@ -84,8 +86,8 @@ public class OpenAI extends BaseProcessor {
 		client = OpenAIOkHttpClient.builder().apiKey(apiKey).baseUrl(baseUrl).build();
 	}
 
-	@CommandDescription("The 'name' attribute is used to define the property name where the response will be stored.\r\n"
-			+ "`model` attribut should be defined in this command or Extern as a default model.\r\n")
+	@CommandDescription("The \"name\" attribute specifies the variable where the response will be stored.\r\n"
+			+ "`model` attribute may be provided on this command to override the default model from {@code <Extern>}.\r\n")
 	@CommandExamples({ "<Prompt name=\"type:property\">...</Prompt>",
 			"<Prompt name=\"type:property\" model=\"type:string\">...</Prompt>",
 			"<Prompt name=\"type:property\" model=\"type:string\"><message role=\"enum:user|system|developer\">...</message></Messages>" })
@@ -93,7 +95,7 @@ public class OpenAI extends BaseProcessor {
 		String name = attr(action, "name");
 		String model = Optional.ofNullable(attr(action, "model")).orElse(chatModel);
 
-		ArrayList<ResponseInputItem> inputs = new ArrayList<ResponseInputItem>();
+		ArrayList<ResponseInputItem> inputs = new ArrayList<>();
 
 		for (Node node : action) {
 			switch (node.getTag()) {
@@ -117,47 +119,41 @@ public class OpenAI extends BaseProcessor {
 		Builder builder = ResponseCreateParams.builder().model(model).input(Input.ofResponse(inputs));
 
 		if (!toolsMap.isEmpty()) {
-			builder.tools(new ArrayList<Tool>(toolsMap.keySet()));
+			builder.tools(new ArrayList<>(toolsMap.keySet()));
 		}
 
 		Response response = client.responses().create(builder.build());
-		if (!isStopped()) {
-			List<ResponseInputItem> funcInputs = new ArrayList<>();
-			List<ResponseInputItem> reasoningInputs = new ArrayList<>();
-			response.output().forEach(item -> {
-				if (item.isFunctionCall()) {
-					ResponseFunctionToolCall functionCall = item.asFunctionCall();
-
-					funcInputs.add(ResponseInputItem.ofFunctionCall(functionCall));
-					try {
-						Object callFunction = ObjectUtils.defaultIfNull(callFunction(functionCall), StringUtils.EMPTY);
-						funcInputs.add(
-								ResponseInputItem.ofFunctionCallOutput(ResponseInputItem.FunctionCallOutput.builder()
-										.callId(functionCall.callId()).outputAsJson(callFunction).build()));
-					} catch (CommandException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
-				}
-				if (item.isReasoning()) {
-					ResponseInputItem reasoning = ResponseInputItem.ofReasoning(item.asReasoning());
-					reasoningInputs.add(reasoning);
-				}
-			});
-
-			if (!funcInputs.isEmpty()) {
-				inputs.addAll(reasoningInputs);
-				inputs.addAll(funcInputs);
-				builder.input(ResponseCreateParams.Input.ofResponse(inputs));
-				response = client.responses().create(builder.build());
-			}
-
-			setVariable(name, response);
+		if (isStopped()) {
+			return;
 		}
+
+		List<ResponseInputItem> funcInputs = new ArrayList<>();
+		List<ResponseInputItem> reasoningInputs = new ArrayList<>();
+		for (ResponseOutputItem item : response.output()) {
+			if (item.isFunctionCall()) {
+				ResponseFunctionToolCall functionCall = item.asFunctionCall();
+				funcInputs.add(ResponseInputItem.ofFunctionCall(functionCall));
+				Object callFunction = ObjectUtils.defaultIfNull(callFunction(functionCall), StringUtils.EMPTY);
+				funcInputs.add(ResponseInputItem.ofFunctionCallOutput(
+						ResponseInputItem.FunctionCallOutput.builder().callId(functionCall.callId())
+								.outputAsJson(callFunction).build()));
+			}
+			if (item.isReasoning()) {
+				reasoningInputs.add(ResponseInputItem.ofReasoning(item.asReasoning()));
+			}
+		}
+
+		if (!funcInputs.isEmpty()) {
+			inputs.addAll(reasoningInputs);
+			inputs.addAll(funcInputs);
+			builder.input(ResponseCreateParams.Input.ofResponse(inputs));
+			response = client.responses().create(builder.build());
+		}
+
+		setVariable(name, response);
 	}
 
-	@CommandDescription("Function command to create a function tool. Property tags define the properties of the function tool. "
-			+ "The Task command is called when the model requests the function.")
+	@CommandDescription("Registers a callable tool/function. Nested <property> tags describe parameters; the nested <Task> is executed when the model requests the function.")
 	@CommandExamples({
 			"<Function name=\"type:string\" description=\"type:string\" type=\"enum:string|number|boolean|object|array\" return=\"type:property\">"
 					+ "<property name=\"type:string\" type=\"type:string\" required=\"type:boolean\"/>"
@@ -169,17 +165,16 @@ public class OpenAI extends BaseProcessor {
 
 		Node[] props = action.getNodes("property");
 
-		Parameters params = null;
 		ObjectMapper mapper = new ObjectMapper();
 
 		Map<String, Map<String, String>> fromValue = new HashMap<>();
-		ArrayNode requiregProps = mapper.createArrayNode();
+		ArrayNode requiredProps = mapper.createArrayNode();
 		for (Node propNode : props) {
 			String paramName = propNode.getAttribute("name");
 			String paramType = propNode.getAttribute("type");
 			boolean required = Boolean.parseBoolean(attr(propNode, "required", "false"));
 			if (required) {
-				requiregProps.add(paramName);
+				requiredProps.add(paramName);
 			}
 
 			Map<String, String> value = new HashMap<>();
@@ -188,17 +183,15 @@ public class OpenAI extends BaseProcessor {
 		}
 
 		JsonValue propsVal = JsonValue.fromJsonNode(mapper.convertValue(fromValue, JsonNode.class));
-		JsonValue requiredVal = JsonValue.from(requiregProps);
-		params = Parameters.builder().putAdditionalProperty("properties", propsVal)
+		JsonValue requiredVal = JsonValue.from(requiredProps);
+		Parameters params = Parameters.builder().putAdditionalProperty("properties", propsVal)
 				.putAdditionalProperty("type", JsonString.of(type)).putAdditionalProperty("required", requiredVal)
 				.build();
 
 		com.openai.models.responses.FunctionTool.Builder toolBuilder = FunctionTool.builder().name(name)
 				.description(description);
 
-		if (params != null) {
-			toolBuilder.parameters(params);
-		}
+		toolBuilder.parameters(params);
 
 		Tool tool = Tool.ofFunction(toolBuilder.strict(false).build());
 		toolsMap.put(tool, action);
@@ -220,7 +213,7 @@ public class OpenAI extends BaseProcessor {
 						JsonNode args = mapper.readTree(function.arguments());
 						Iterator<String> fieldNames = args.fieldNames();
 						while (fieldNames.hasNext()) {
-							String propName = (String) fieldNames.next();
+							String propName = fieldNames.next();
 							String value = args.get(propName).asText();
 							setVariableValue(propName, value);
 						}
@@ -247,7 +240,7 @@ public class OpenAI extends BaseProcessor {
 	public void runCommandModels(Node action) {
 		String name = attr(action, "name");
 		List<com.openai.models.models.Model> models = client.models().list(ModelListParams.none()).data();
-		List<String> result = models.stream().map(item -> item.id()).collect(Collectors.toList());
+		List<String> result = models.stream().map(com.openai.models.models.Model::id).collect(Collectors.toList());
 		setVariableValue(name, result);
 	}
 
@@ -256,7 +249,7 @@ public class OpenAI extends BaseProcessor {
 	public void runCommandWebSearch(Node action) {
 		String type = attr(action, "type", "web_search_preview");
 
-		com.openai.models.responses.WebSearchTool.UserLocation.Builder location = UserLocation.builder();
+		UserLocation.Builder location = UserLocation.builder();
 		location.type(WebSearchTool.UserLocation.Type.APPROXIMATE);
 
 		String city = attr(action, "city");
@@ -284,10 +277,8 @@ public class OpenAI extends BaseProcessor {
 
 	private Message message(String input, String role) {
 		String text = replaceProperties(input);
-		Message message = com.openai.models.responses.ResponseInputItem.Message.builder()
-				.role(com.openai.models.responses.ResponseInputItem.Message.Role.of(role)).addInputTextContent(text)
-				.build();
-		return message;
+		return ResponseInputItem.Message.builder().role(ResponseInputItem.Message.Role.of(role))
+				.addInputTextContent(text).build();
 	}
 
 	private void setVariable(String name, Response response) {

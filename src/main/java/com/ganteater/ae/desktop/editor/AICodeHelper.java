@@ -27,12 +27,12 @@ import com.openai.client.OpenAIClient;
 import com.openai.client.okhttp.OpenAIOkHttpClient;
 
 /**
- * Installs and configures the AI helper integration for a {@link TextEditor}.
+ * Installs and configures AI-assistant support for a {@link TextEditor}.
  *
  * <p>
- * This helper adds a small progress indicator to the editor UI, reads model/client configuration from the editor
- * node, initializes an {@link OpenAIClient} in a background thread, and wires an {@link AIHelperDialog} to drive
- * request/cancel behavior.
+ * The helper adds a progress indicator to the editor UI, reads model/client configuration from the editor node,
+ * initializes an {@link OpenAIClient} asynchronously, and wires an {@link AIHelperDialog} that can send/cancel
+ * requests.
  * </p>
  */
 public class AICodeHelper extends CodeHelper {
@@ -45,10 +45,11 @@ public class AICodeHelper extends CodeHelper {
 	private final JLabel aiProgress = new JLabel(AEFrame.getIcon("spinner.gif"));
 
 	/**
-	 * Creates the helper for a specific editor instance.
+	 * Creates the helper and attaches it to a specific editor instance.
 	 *
 	 * <p>
-	 * The OpenAI client is created asynchronously; initialization failures are logged and the helper remains disabled.
+	 * Client initialization occurs on a background thread. If initialization fails, the error is logged and the helper
+	 * remains unavailable.
 	 * </p>
 	 *
 	 * @param textEditor editor to attach to
@@ -124,10 +125,10 @@ public class AICodeHelper extends CodeHelper {
 	}
 
 	/**
-	 * Builds a textual description of a {@link com.ganteater.ae.desktop.view.View} class for request context.
+	 * Builds a short, human-readable description of a {@link com.ganteater.ae.desktop.view.View} implementation.
 	 *
 	 * @param clazz view class
-	 * @return formatted markdown-like text
+	 * @return formatted text for inclusion in the AI request context
 	 */
 	public String appendViewInfo(Class<?> clazz) {
 		StringBuilder contextBuilder = new StringBuilder();
@@ -163,7 +164,7 @@ public class AICodeHelper extends CodeHelper {
 	}
 
 	/**
-	 * @return model name used for the request
+	 * @return model name used for chat/completion requests
 	 */
 	public String getChatModel() {
 		return chatModel;

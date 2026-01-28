@@ -26,29 +26,28 @@
  */
 
 /**
- * Anteater recipe processors that integrate with OpenAI-compatible LLM providers.
+ * Anteater recipe processors for integrating with OpenAI-compatible LLM providers.
  *
  * <p>
- * The classes in this package are intended to be instantiated from an Anteater recipe via {@code <Extern>} and then
- * expose recipe commands for interacting with a model.
+ * The processors in this package are intended to be instantiated from an Anteater recipe via {@code <Extern>}. They
+ * implement recipe commands for sending prompts, registering callable tools/functions backed by recipe {@code <Task>}
+ * blocks, and querying provider metadata.
  * </p>
  *
- * <h2>Commands</h2>
+ * <h2>Supported providers</h2>
  * <ul>
- *   <li>{@code <Prompt>} sends one or more {@code <message>} elements and stores the assistant output into a recipe
- *   variable.</li>
- *   <li>{@code <Function>} registers a recipe {@code <Task>} block as a callable tool/function that the model can invoke
- *   with JSON arguments.</li>
- *   <li>{@code <Models>} lists the available model ids from the provider.</li>
- *   <li>{@code <WebSearch>} enables optional provider features (for example, web search) for subsequent prompts.</li>
+ *   <li>{@link com.ganteater.ae.processor.OpenAI} calls the OpenAI Responses API (and compatible services).</li>
+ *   <li>{@link com.ganteater.ae.processor.CodeMie} obtains an access token from CodeMie and delegates to
+ *   {@link com.ganteater.ae.processor.OpenAI} using a CodeMie base URL.</li>
+ *   <li>{@link com.ganteater.ae.processor.AbstractAIProcessor} is a legacy/alternate base class for provider
+ *   implementations.</li>
  * </ul>
  *
+ * <h2>Recipe integration</h2>
  * <p>
- * Provider settings (for example, API key, base URL, and default model name) are supplied as attributes on
- * {@code <Extern>}. Anteater recipe variables should be referenced using the {@code $var{...}} syntax.
+ * Provider settings such as API key, base URL, and default model are supplied as attributes on {@code <Extern>}. Anteater
+ * recipe variables are referenced using {@code $var{...}}.
  * </p>
- *
- * <h2>Usage from an Anteater recipe</h2>
  *
  * <h3>Configuring a provider</h3>
  * <pre>
@@ -63,12 +62,6 @@
  * </pre>
  *
  * <h3>Defining callable tools (functions)</h3>
- * <p>
- * {@code <Function>} registers a tool with the model. Nested {@code <property>} tags define the tool parameters.
- * When the model calls the tool, the processor parses the JSON arguments, stores each argument value into a recipe
- * variable with the same name as the parameter, executes the nested {@code <Task>}, and optionally returns a value read
- * from the recipe variable named by the {@code return} attribute.
- * </p>
  * <pre>
  * &amp;lt;Function name="getTicket" description="Fetch a ticket by id" type="object" return="ticket"&amp;gt;
  *   &amp;lt;property name="id" type="string" required="true" /&amp;gt;
@@ -77,21 +70,5 @@
  *   &amp;lt;/Task&amp;gt;
  * &amp;lt;/Function&amp;gt;
  * </pre>
- *
- * <h2>Notable classes</h2>
- * <ul>
- *   <li>
- *     {@link com.ganteater.ae.processor.OpenAI} integrates with the OpenAI Responses API (or compatible services) and
- *     provides commands such as {@code <Prompt>}, {@code <Function>}, {@code <Models>}, and {@code <WebSearch>}.
- *   </li>
- *   <li>
- *     {@link com.ganteater.ae.processor.CodeMie} obtains an access token using a username/password pair and then delegates
- *     OpenAI-compatible calls to {@link com.ganteater.ae.processor.OpenAI}.
- *   </li>
- *   <li>
- *     {@link com.ganteater.ae.processor.AbstractAIProcessor} is a legacy/alternative base class that defines prompting and
- *     tool registration in an implementation-agnostic way.
- *   </li>
- * </ul>
  */
 package com.ganteater.ae.processor;

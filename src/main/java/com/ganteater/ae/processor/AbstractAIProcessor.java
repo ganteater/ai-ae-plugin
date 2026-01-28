@@ -13,23 +13,17 @@ import com.ganteater.ae.processor.annotation.CommandExamples;
 import com.ganteater.ae.util.xml.easyparser.Node;
 
 /**
- * Base processor for implementing LLM-backed Anteater commands.
+ * Abstract base processor for LLM-backed Anteater integrations.
  *
  * <p>
- * This class provides common behavior for processors that:
+ * This class centralizes shared behavior used by concrete provider processors. It supports initialization from an
+ * {@code <Extern>} element and implements common recipe commands.
  * </p>
- * <ul>
- *   <li>are configured via {@code <Extern>} attributes such as {@code model} and {@code apiKey}</li>
- *   <li>expose {@code <Prompt>} to send one or more {@code <message>} elements and store the response into a variable</li>
- *   <li>expose {@code <Function>} to register a recipe {@code <Task>} block as a callable tool/function</li>
- * </ul>
  *
- * <p>
- * Concrete implementations must provide:
- * </p>
+ * <h2>Supported recipe commands</h2>
  * <ul>
- *   <li>{@link #perform(List)} to send prompt inputs and return a text response</li>
- *   <li>{@link #addFunctionTool(Node, Map)} to register a tool definition with the provider implementation</li>
+ *   <li>{@code <Prompt>}: collects message input, calls the provider, and stores the response in a recipe variable.</li>
+ *   <li>{@code <Function>}: registers a recipe {@code <Task>} block as a callable tool/function.</li>
  * </ul>
  */
 public abstract class AbstractAIProcessor extends BaseProcessor {
@@ -50,7 +44,7 @@ public abstract class AbstractAIProcessor extends BaseProcessor {
 		}
 	}
 
-	@CommandDescription("The 'name' attribute is used to define the property name where the response will be stored.")
+	@CommandDescription("The \"name\" attribute specifies the variable where the response will be stored.")
 	@CommandExamples({ "<Prompt name=\"type:property\">...</Prompt>",
 			"<Prompt name=\"type:property\"><message>...</message></Prompt>" })
 	public void runCommandPrompt(Node action) throws CommandException {
@@ -76,10 +70,10 @@ public abstract class AbstractAIProcessor extends BaseProcessor {
 		setVariableValue(name, value);
 	}
 
-	@CommandDescription("Function command to create a function tool. Property tags define the properties of the function tool. "
-			+ "The Task command is called when the model requests the function.")
+	@CommandDescription(
+			"Registers a callable tool/function. Nested <property> tags describe parameters; the nested <Task> is executed when the model requests the function.")
 	@CommandExamples({
-			"<Function name=\"type:string\" description=\"type:string\" type=\"enum:object|number|boolean|array|null|string\" return=\"type:proprty\">"
+			"<Function name=\"type:string\" description=\"type:string\" type=\"enum:object|number|boolean|array|null|string\" return=\"type:property\">"
 					+ "<property name=\"type:string\" type=\"type:string\" required=\"type:boolean\"/>"
 					+ "<Task>...recipe code...</Task>" + "</Function>" })
 	public void runCommandFunction(Node action) {
