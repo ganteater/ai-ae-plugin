@@ -13,14 +13,15 @@
 
 	<artifactId>ai-ae-plugin</artifactId>
 	<version>1.2.12-SNAPSHOT</version>
-	
+
 	<name>AI Anteater Plugin</name>
 	<description>Module provides anteater plugin for AI.</description>
 	<url>https://ganteater.com/ae-plugins</url>
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<java.version>11</java.version>
+		<maven.compiler.source>11</maven.compiler.source>
+		<maven.compiler.target>11</maven.compiler.target>
 	</properties>
 
 	<dependencies>
@@ -28,12 +29,6 @@
 			<groupId>com.openai</groupId>
 			<artifactId>openai-java</artifactId>
 			<version>4.8.0</version>
-		</dependency>
-		<dependency>
-			<groupId>javax.annotation</groupId>
-			<artifactId>javax.annotation-api</artifactId>
-			<version>1.3.2</version>
-			<scope>compile</scope>
 		</dependency>
 	</dependencies>
 
@@ -56,6 +51,18 @@
 						</dependency>
 					</dependencies>
 				</plugin>
+				<plugin>
+					<groupId>com.ganteater</groupId>
+					<artifactId>ae-maven-plugin</artifactId>
+					<version>1.2.11</version>
+					<dependencies>
+						<dependency>
+							<groupId>${project.groupId}</groupId>
+							<artifactId>${project.artifactId}</artifactId>
+							<version>${project.version}</version>
+						</dependency>
+					</dependencies>
+				</plugin>
 			</plugins>
 		</pluginManagement>
 		<plugins>
@@ -63,8 +70,6 @@
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
 				<configuration>
-					<source>${java.version}</source>
-					<target>${java.version}</target>
 					<excludes>
 						<exclude>**/@guidance.txt</exclude>
 					</excludes>
