@@ -5,6 +5,9 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 
@@ -16,15 +19,17 @@ import com.ganteater.ae.processor.annotation.CommandExamples;
 import com.ganteater.ae.util.xml.easyparser.Node;
 
 /**
- * OpenAI-compatible processor that authenticates against CodeMie and delegates calls to {@link OpenAI}.
+ * OpenAI-compatible processor that authenticates against CodeMie and delegates
+ * calls to {@link OpenAI}.
  *
  * <p>
- * During initialization this processor exchanges a {@code username}/{@code password} pair for an access token and then
+ * During initialization this processor exchanges a
+ * {@code username}/{@code password} pair for an access token and then
  * configures the base {@link OpenAI} implementation with:
  * </p>
  * <ul>
- *   <li>{@code apiKey}: the retrieved access token</li>
- *   <li>{@code baseUrl}: CodeMie OpenAI-compatible endpoint</li>
+ * <li>{@code apiKey}: the retrieved access token</li>
+ * <li>{@code baseUrl}: CodeMie OpenAI-compatible endpoint</li>
  * </ul>
  */
 public class CodeMie extends OpenAI {
@@ -57,30 +62,37 @@ public class CodeMie extends OpenAI {
 
 		byte[] postData = urlParameters.getBytes(StandardCharsets.UTF_8);
 
-		URL obj = new URL(url);
-		HttpURLConnection conn = (HttpURLConnection) obj.openConnection();
-		conn.setRequestMethod("POST");
-		conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
-		conn.setDoOutput(true);
+		URL obj;
+		try {
+			obj = new URI(url).toURL();
+			HttpURLConnection conn = (HttpURLConnection) obj.openConnection();
+			conn.setRequestMethod("POST");
+			conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+			conn.setDoOutput(true);
 
-		try (DataOutputStream wr = new DataOutputStream(conn.getOutputStream())) {
-			wr.write(postData);
-		}
-
-		int responseCode = conn.getResponseCode();
-		if (responseCode == 200) {
-			try (BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()))) {
-				String inputLine;
-				StringBuilder response = new StringBuilder();
-
-				while ((inputLine = in.readLine()) != null) {
-					response.append(inputLine);
-				}
-
-				String accessToken = StringUtils.substringBetween(response.toString(), "\"access_token\":\"", "\",");
-				return accessToken;
+			try (DataOutputStream wr = new DataOutputStream(conn.getOutputStream())) {
+				wr.write(postData);
 			}
+
+			int responseCode = conn.getResponseCode();
+			if (responseCode == 200) {
+				try (BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()))) {
+					String inputLine;
+					StringBuilder response = new StringBuilder();
+
+					while ((inputLine = in.readLine()) != null) {
+						response.append(inputLine);
+					}
+
+					String accessToken = StringUtils.substringBetween(response.toString(), "\"access_token\":\"",
+							"\",");
+					return accessToken;
+				}
+			}
+			throw new IOException("Failed to obtain token: received HTTP response code " + responseCode);
+		} catch (MalformedURLException | URISyntaxException e) {
+			throw new IOException(e);
 		}
-		throw new IOException("Failed to obtain token: received HTTP response code " + responseCode);
+
 	}
 }
