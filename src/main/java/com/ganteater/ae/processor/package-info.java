@@ -29,23 +29,23 @@
  * Anteater recipe processors that integrate with OpenAI-compatible LLM providers.
  *
  * <p>
- * This package contains {@link com.ganteater.ae.processor.BaseProcessor} implementations intended to be instantiated from
- * an Anteater recipe via {@code <Extern>}. They provide recipe commands for sending prompts, registering callable
- * tools/functions backed by recipe {@code <Task>} blocks, and querying provider metadata.
+ * Classes in this package are intended to be created from an Anteater recipe via {@code <Extern>}. They expose recipe
+ * commands for sending prompts, registering callable tools/functions backed by recipe {@code <Task>} blocks, enabling
+ * web-search tools, and listing available provider models.
  * </p>
  *
- * <h2>Included processors</h2>
+ * <h2>Provided processors</h2>
  * <ul>
  *   <li>{@link com.ganteater.ae.processor.OpenAI}: OpenAI Responses API client (and compatible services).</li>
  *   <li>{@link com.ganteater.ae.processor.CodeMie}: authenticates to CodeMie, then delegates to {@link com.ganteater.ae.processor.OpenAI}
  *       using a CodeMie base URL.</li>
- *   <li>{@link com.ganteater.ae.processor.AbstractAIProcessor}: legacy/alternate base class for provider implementations.</li>
+ *   <li>{@link com.ganteater.ae.processor.AbstractAIProcessor}: older base class for provider implementations.</li>
  * </ul>
  *
- * <h2>Recipe integration</h2>
+ * <h2>Recipe usage</h2>
  * <p>
  * Provider settings such as API key, base URL, and default model are supplied as attributes on {@code <Extern>}. Anteater
- * recipe variables are referenced using {@code $var{...}}.
+ * recipe variables should be referenced using {@code $var{...}}.
  * </p>
  *
  * <h3>Configuring a provider</h3>
@@ -53,9 +53,9 @@
  * &amp;lt;Extern class="OpenAI" model="gpt-5-mini" apiKey="$var{OPENAI_API_KEY}" /&amp;gt;
  * </pre>
  *
- * <h3>Prompting</h3>
+ * <h3>Prompting with messages</h3>
  * <pre>
- * &amp;lt;Prompt name="answer"&amp;gt;
+ * &amp;lt;Prompt name="answer" model="gpt-5-mini"&amp;gt;
  *   &amp;lt;message role="user"&amp;gt;Summarize the release notes.&amp;lt;/message&amp;gt;
  * &amp;lt;/Prompt&amp;gt;
  * </pre>

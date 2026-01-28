@@ -28,21 +28,23 @@
  * Desktop editor integration for AI-assisted Anteater recipe editing.
  *
  * <p>
- * This package provides glue code that connects a {@link com.ganteater.ae.desktop.editor.TextEditor} to an
- * OpenAI-compatible backend. It assembles request context (static markdown resources and runtime metadata such as
- * system variables, processors/commands, and registered desktop views), submits the user prompt along with the current
- * editor state, and applies the backend response by updating the editor text and caret/selection.
+ * This package provides the UI and orchestration code that connects a {@link com.ganteater.ae.desktop.editor.TextEditor}
+ * to an OpenAI-compatible backend. It gathers request context from bundled markdown resources and runtime metadata
+ * (system variables, available processors/commands, and registered desktop views), submits the current editor state and
+ * user prompt, and then applies the backend response by updating the editor text and caret/selection.
  * </p>
  *
- * <h2>Main components</h2>
+ * <h2>Key types</h2>
  * <ul>
- *   <li>{@link com.ganteater.ae.desktop.editor.AICodeHelper} installs the helper into an editor, reads model/client
- *       configuration from the editor node, initializes an {@link com.openai.client.OpenAIClient} asynchronously, and
- *       manages progress/cancel wiring.</li>
- *   <li>{@link com.ganteater.ae.desktop.editor.AIHelperDialog} displays the prompt UI, builds the request payload, and
- *       applies a JSON response to the editor and triggers recompilation.</li>
- *   <li>{@link com.ganteater.ae.desktop.editor.CodeMieHelper} authenticates using
- *       {@link com.ganteater.ae.processor.CodeMie} credentials and uses the retrieved token as the client API key.</li>
+ *   <li>{@link com.ganteater.ae.desktop.editor.AICodeHelper} installs the helper on an editor, reads configuration from
+ *       the editor node (model, base URL, API key), initializes an {@link com.openai.client.OpenAIClient} asynchronously,
+ *       and manages progress/cancel wiring.</li>
+ *   <li>{@link com.ganteater.ae.desktop.editor.AIHelperDialog} provides the prompt UI, builds the request payload (system
+ *       context + editor state + prompt), submits it, and applies the JSON response to the editor and triggers
+ *       recompilation.</li>
+ *   <li>{@link com.ganteater.ae.desktop.editor.CodeMieHelper} is an {@link com.ganteater.ae.desktop.editor.AICodeHelper}
+ *       variant that obtains an access token via {@link com.ganteater.ae.processor.CodeMie} and uses it as the client API
+ *       key.</li>
  * </ul>
  *
  * <h2>Backend response contract</h2>

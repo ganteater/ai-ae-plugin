@@ -43,7 +43,7 @@ Content Structure:
 - **The Anteater: External Accessor**  
   - VIDEO_TITLE: "The Anteater: CodeMie Processor";
   - VIDEO_ID: "8d-ulZaNHmg".
-- Use following format for youtube video embedding on the page: <iframe class="youtube" title="[VIDEO_TITLE]" src="https://www.youtube.com/embed/[VIDEO_ID]"></iframe>
+- Use following format for youtube video embedding on the page: [![VIDEO_TITLE](https://img.youtube.com/vi/VIDEO_ID/0.jpg)](https://www.youtube.com/watch?v=VIDEO_ID)
 tools.
 # **Formatting Requirements:**
 - Use Markdown syntax for all headings, lists, code blocks, and links.
@@ -57,11 +57,11 @@ tools.
 [![Maven Central](https://img.shields.io/maven-central/v/com.ganteater.plugins/ai-ae-plugin.svg)](https://central.sonatype.com/artifact/com.ganteater.plugins/ai-ae-plugin)
 
 ## Overview
-This plugin adds AI assistance to Anteater so you can create and refine automation recipes more quickly and with fewer manual edits.
+This project is an Anteater plugin that brings AI-assisted authoring to automation recipes.
 
-In the desktop editor, it provides an interactive assistant that uses your current document, selection, and available runtime context to suggest updates and apply them back into the editor.
-
-For automated runs, it provides processors that can send prompts (single text or multi-message conversations), list available models, optionally enable provider web search, and expose recipe tasks as callable functions so a model can request structured actions and receive results.
+It includes:
+- An interactive assistant inside the desktop editor that can propose changes to the current recipe and apply updates back to the document (including caret/selection adjustments when provided).
+- Recipe processors that can send prompts (single text or multi-message conversations), list available models, enable provider web search when supported, and expose recipe tasks as callable tools so the model can request structured actions and receive results.
 
 ## Installation Instructions
 ### Prerequisites
@@ -70,7 +70,7 @@ For automated runs, it provides processors that can send prompts (single text or
 - Anteater (Desktop or CLI)
 - AI provider credentials (one of):
   - an OpenAI-compatible API key, or
-  - a CodeMie username/password
+  - CodeMie username/password
 
 ### Clone and Build
 1. Clone the repository:
@@ -112,14 +112,15 @@ Add the dependency to your project’s `pom.xml`:
 </dependency>
 ```
 
-Maven will download the artifact and include it in your build.
+Maven will handle downloading and including the plugin during the build process.
 
 ## Usage
 ### Code Helpers
 The desktop editor integration provides helper components that:
-- initialize an OpenAI-compatible client (optionally via CodeMie authentication),
-- build a request from the current editor state and runtime metadata, and
-- apply the returned update back into the editor (including caret/selection updates, when provided).
+- read editor configuration (model, base URL, credentials),
+- initialize an OpenAI-compatible client,
+- build a request using the current editor state plus runtime metadata, and
+- apply the returned update back into the editor.
 
 Example configuration (from `src/ae/ae.xml`):
 
@@ -224,6 +225,6 @@ CodeMie processor example (from `src/ae/recipes/codemie/CodeMie Test.recipe`):
 ```
 
 ## Demo & Tutorial
-<iframe class="youtube" title="The Anteater: AI Anteater Plugin" src="https://www.youtube.com/embed/bt8eS8iDjsc"></iframe>
+[![The Anteater: AI Anteater Plugin](https://img.youtube.com/vi/bt8eS8iDjsc/0.jpg)](https://www.youtube.com/watch?v=bt8eS8iDjsc)
 
-<iframe class="youtube" title="The Anteater: CodeMie Processor" src="https://www.youtube.com/embed/8d-ulZaNHmg"></iframe>
+[![The Anteater: CodeMie Processor](https://img.youtube.com/vi/8d-ulZaNHmg/0.jpg)](https://www.youtube.com/watch?v=8d-ulZaNHmg)
