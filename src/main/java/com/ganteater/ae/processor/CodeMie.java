@@ -19,12 +19,10 @@ import com.ganteater.ae.processor.annotation.CommandExamples;
 import com.ganteater.ae.util.xml.easyparser.Node;
 
 /**
- * OpenAI-compatible processor that authenticates against CodeMie and delegates
- * calls to {@link OpenAI}.
+ * OpenAI-compatible processor that authenticates against CodeMie and delegates calls to {@link OpenAI}.
  *
  * <p>
- * During initialization this processor exchanges a
- * {@code username}/{@code password} pair for an access token and then
+ * During initialization this processor exchanges a {@code username}/{@code password} pair for an access token and then
  * configures the base {@link OpenAI} implementation with:
  * </p>
  * <ul>

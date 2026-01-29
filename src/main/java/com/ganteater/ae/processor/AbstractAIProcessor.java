@@ -29,6 +29,7 @@ public abstract class AbstractAIProcessor extends BaseProcessor {
 	private String chatModel;
 	private String apiKey;
 
+	@Override
 	public void init(Processor parentProcessor, Node action) throws CommandException {
 		super.init(parentProcessor, action);
 		chatModel = attr(action, "model", DEFAULT_MODEL_NAME);

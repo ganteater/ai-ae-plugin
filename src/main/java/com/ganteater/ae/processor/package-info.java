@@ -36,38 +36,38 @@
  *
  * <h2>Provided processors</h2>
  * <ul>
- *   <li>{@link com.ganteater.ae.processor.OpenAI}: OpenAI Responses API client (and compatible services).</li>
- *   <li>{@link com.ganteater.ae.processor.CodeMie}: authenticates to CodeMie, then delegates to {@link com.ganteater.ae.processor.OpenAI}
- *       using a CodeMie base URL.</li>
- *   <li>{@link com.ganteater.ae.processor.AbstractAIProcessor}: older base class for provider implementations.</li>
+ * <li>{@link com.ganteater.ae.processor.OpenAI}: OpenAI Responses API client (and compatible services).</li>
+ * <li>{@link com.ganteater.ae.processor.CodeMie}: authenticates to CodeMie, then delegates to
+ * {@link com.ganteater.ae.processor.OpenAI} using a CodeMie base URL.</li>
+ * <li>{@link com.ganteater.ae.processor.AbstractAIProcessor}: older base class for provider implementations.</li>
  * </ul>
  *
  * <h2>Recipe usage</h2>
  * <p>
- * Provider settings such as API key, base URL, and default model are supplied as attributes on {@code <Extern>}. Anteater
- * recipe variables should be referenced using {@code $var{...}}.
+ * Provider settings such as API key, base URL, and default model are supplied as attributes on {@code <Extern>}.
+ * Anteater recipe variables should be referenced using {@code $var{...}}.
  * </p>
  *
  * <h3>Configuring a provider</h3>
  * <pre>
- * &amp;lt;Extern class="OpenAI" model="gpt-5-mini" apiKey="$var{OPENAI_API_KEY}" /&amp;gt;
+ * &lt;Extern class="OpenAI" model="gpt-5-mini" apiKey="$var{OPENAI_API_KEY}" /&gt;
  * </pre>
  *
  * <h3>Prompting with messages</h3>
  * <pre>
- * &amp;lt;Prompt name="answer" model="gpt-5-mini"&amp;gt;
- *   &amp;lt;message role="user"&amp;gt;Summarize the release notes.&amp;lt;/message&amp;gt;
- * &amp;lt;/Prompt&amp;gt;
+ * &lt;Prompt name="answer" model="gpt-5-mini"&gt;
+ *   &lt;message role="user"&gt;Summarize the release notes.&lt;/message&gt;
+ * &lt;/Prompt&gt;
  * </pre>
  *
  * <h3>Defining callable tools (functions)</h3>
  * <pre>
- * &amp;lt;Function name="getTicket" description="Fetch a ticket by id" type="object" return="ticket"&amp;gt;
- *   &amp;lt;property name="id" type="string" required="true" /&amp;gt;
- *   &amp;lt;Task&amp;gt;
- *     &amp;lt;!-- recipe code that sets variable &quot;ticket&quot; --&amp;gt;
- *   &amp;lt;/Task&amp;gt;
- * &amp;lt;/Function&amp;gt;
+ * &lt;Function name="getTicket" description="Fetch a ticket by id" type="object" return="ticket"&gt;
+ *   &lt;property name="id" type="string" required="true" /&gt;
+ *   &lt;Task&gt;
+ *     &lt;!-- recipe code that sets variable &quot;ticket&quot; --&gt;
+ *   &lt;/Task&gt;
+ * &lt;/Function&gt;
  * </pre>
  */
 package com.ganteater.ae.processor;

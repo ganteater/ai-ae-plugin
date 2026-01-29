@@ -47,7 +47,7 @@ import com.openai.models.responses.WebSearchTool.UserLocation;
  *
  * <p>
  * Instantiate this processor from an Anteater recipe via {@code <Extern>}. The processor then exposes additional recipe
- * commands such as {@code <Prompt>} and {@code <Function>}.
+ * commands such as {@code <Prompt>}, {@code <Function>}, {@code <Models>}, and {@code <WebSearch>}.
  * </p>
  */
 public class OpenAI extends BaseProcessor {
